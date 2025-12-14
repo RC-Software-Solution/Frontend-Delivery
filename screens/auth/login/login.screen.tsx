@@ -1,12 +1,13 @@
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, TextInput, ScrollView, Image } from "react-native";
 import React, { useState } from "react";
-import { KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback } from "react-native";
+import { ActivityIndicator, Alert, Image, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from "react-native";
 
-import { Entypo, Ionicons } from "@expo/vector-icons";
-import { useFonts, Raleway_700Bold } from "@expo-google-fonts/raleway";
+import { authService, ErrorUtils } from "@/services";
 import { Nunito_400Regular, Nunito_700Bold } from "@expo-google-fonts/nunito";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { Raleway_700Bold, useFonts } from "@expo-google-fonts/raleway";
+import { Entypo, Ionicons } from "@expo/vector-icons";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from "expo-router";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 export default function LoginScreen() {
   const [isPasswordVisible, setPasswordVisible] = useState(false);
@@ -53,46 +54,90 @@ export default function LoginScreen() {
     }
   };
 
-  const handleSignIn = () => {
-  const { email, password } = userInfo;
-  const passwordSpecialCharacter = /(?=.*[!@#$%^&*])/;
-  const passwordNumber = /(?=.*[0-9])/;
-  const passwordEightValue = /(?=.{8,})/;
+  const handleSignIn = async () => {
+    const { email, password } = userInfo;
 
-  let valid = true;
-  let passwordError = "";
+    // Basic validation
+    if (email === "" || password === "") {
+      setRequired(true);
+      return;
+    }
 
-  if (email === "" || password === "") {
-    setRequired(true);
-    return;
-  }
+    setRequired(false);
+    setError({ ...error, passwordError: "" });
+    setButtonSpinner(true);
 
-  if (!passwordSpecialCharacter.test(password)) {
-    passwordError = "Password must contain at least one special character";
-    valid = false;
-  } else if (!passwordNumber.test(password)) {
-    passwordError = "Password must contain at least one number";
-    valid = false;
-  } else if (!passwordEightValue.test(password)) {
-    passwordError = "Password must contain at least 8 characters";
-    valid = false;
-  }
+    try {
+      console.log("🔐 Attempting login for delivery personnel...");
+      
+      const response = await authService.login({
+        email: email.trim(),
+        password,
+        fcm_token: "", // You can implement FCM token later
+      });
 
-  if (!valid) {
-    setError({ ...error, passwordError });
-    return;
-  }
+      console.log("✅ Login successful:", response.user.full_name);
+      
+      // Clear previous session selections and summaries to start fresh
+      try {
+        const keys = await AsyncStorage.getAllKeys();
+        const toRemove = keys.filter(k => 
+          k.startsWith('rc_delivery_paid_summary_area_') ||
+          k.startsWith('rc_delivery_unpaid_collected_area_') ||
+          k === 'rc_selected_area'
+        );
+        if (toRemove.length) {
+          await AsyncStorage.multiRemove(toRemove);
+        }
+      } catch {}
 
-  // Proceed if everything is valid
-  setError({ ...error, passwordError: "" });
-  setRequired(false);
-  setButtonSpinner(true);
+      // Show success message
+      Alert.alert(
+        "Login Successful! 🎉", 
+        `Welcome back, ${response.user.full_name}!`,
+        [
+          {
+            text: "Continue",
+            onPress: () => {
+              // Navigate to main delivery app screens
+              router.push("/(routes)/area-selection");
+            }
+          }
+        ]
+      );
 
-  setTimeout(() => {
-    router.push("/(routes)/area-selection");
-    setButtonSpinner(false);
-  }, 1000);
-};
+    } catch (error: any) {
+      console.error("❌ Login error:", error);
+      
+      let errorMessage = ErrorUtils.getErrorMessage(error);
+      
+      // Handle specific delivery app errors
+      if (error.message?.includes('delivery personnel')) {
+        errorMessage = "Only delivery personnel are allowed to access this application";
+      } else if (error.message?.includes('pending approval')) {
+        errorMessage = "Your account is pending approval. Please contact support";
+      } else if (error.message?.includes('deleted')) {
+        errorMessage = "Your account has been deleted. Please contact support";
+      } else if (error.message?.includes('Invalid credentials')) {
+        errorMessage = "Invalid email or password. Please try again";
+      }
+      
+      setError({ 
+        ...error, 
+        passwordError: errorMessage 
+      });
+
+      // Show error alert for critical errors
+      if (errorMessage.includes('delivery personnel') || 
+          errorMessage.includes('pending approval') || 
+          errorMessage.includes('deleted')) {
+        Alert.alert("Access Denied", errorMessage);
+      }
+      
+    } finally {
+      setButtonSpinner(false);
+    }
+  };
 
   const [fontsLoaded] = useFonts({
     Raleway_700Bold,
@@ -157,7 +202,7 @@ export default function LoginScreen() {
             placeholderTextColor="#888"
             secureTextEntry={!isPasswordVisible}
             value={userInfo.password}
-           onChangeText={(text) => setUserInfo({ ...userInfo, password: text })}
+            onChangeText={(text) => setUserInfo({ ...userInfo, password: text })}
 
           />
           <TouchableOpacity

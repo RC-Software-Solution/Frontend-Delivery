@@ -1,154 +1,252 @@
-import React, { useState } from 'react';
-import { useLocalSearchParams } from 'expo-router';
-import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, SafeAreaView, StatusBar } from 'react-native';
 import CancelModal from '@/components/popupmodel/popupModel';
+import { DeliveryOrder, deliveryService, ErrorUtils } from '@/services';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useLocalSearchParams } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, FlatList, SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 
-interface OrderItem {
-    name: string;
-    quantity: number;
-}
-
-interface Order {
-    id: string;
-    userId: string;
-    items: OrderItem[];
-    price: number;
-    paid: boolean;
-}
-
-const ordersData: Order[] = [
-    {
-        id: '5012',
-        userId: '423',
-        items: [
-            { name: 'Chicken - Full', quantity: 2 },
-            { name: 'Vegetarian - Half', quantity: 1 },
-        ],
-        price: 580,
-        paid: true,
-    },
-    {
-        id: '5012',
-        userId: '423',
-        items: [
-            { name: 'Chicken - Full', quantity: 2 },
-            { name: 'Vegetarian - Half', quantity: 1 },
-        ],
-        price: 580,
-        paid: true,
-    },
-    {
-        id: '5012',
-        userId: '423',
-        items: [
-            { name: 'Chicken - Full', quantity: 2 },
-            { name: 'Vegetarian - Half', quantity: 1 },
-        ],
-        price: 580,
-        paid: true,
-    },
-    {
-        id: '5012',
-        userId: '423',
-        items: [
-            { name: 'Chicken - Full', quantity: 2 },
-            { name: 'Vegetarian - Half', quantity: 1 },
-        ],
-        price: 580,
-        paid: true,
-    },
-    {
-        id: '5012',
-        userId: '423',
-        items: [
-            { name: 'Chicken - Full', quantity: 2 },
-            { name: 'Vegetarian - Half', quantity: 1 },
-        ],
-        price: 580,
-        paid: true,
-    },
-    {
-        id: '5012',
-        userId: '423',
-        items: [
-            { name: 'Chicken - Full', quantity: 2 },
-            { name: 'Vegetarian - Half', quantity: 1 },
-        ],
-        price: 580,
-        paid: true,
-    },
-    {
-        id: '5012',
-        userId: '423',
-        items: [
-            { name: 'Chicken - Full', quantity: 2 },
-            { name: 'Vegetarian - Half', quantity: 1 },
-        ],
-        price: 580,
-        paid: true,
-    },
-
-];
 type Params = {
     area?: string;
+    areaId?: string;
 };
-
-
-;
 
 const HomeScreen = () => {
 const [feedbackVisible, setFeedbackVisible] = useState(false);
 const [feedbackMessage, setFeedbackMessage] = useState('');
 
-    const { area } = useLocalSearchParams();
+    const { area, areaId } = useLocalSearchParams<Params>();
     const [search, setSearch] = useState('');
     const [modalVisible, setModalVisible] = React.useState(false);
     const [modalTitle, setModalTitle] = React.useState('');
     const [modalMessage, setModalMessage] = React.useState('');
     const [onConfirmAction, setOnConfirmAction] = React.useState(() => () => { });
-   const handlePress = (type: 'paid' | 'unpaid') => {
+
+    // New state for orders
+    const [orders, setOrders] = useState<DeliveryOrder[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    
+    // Separate tracking for paid orders (for bottom summary)
+    const [paidOrders, setPaidOrders] = useState<DeliveryOrder[]>([]);
+    const [paidTotalAmount, setPaidTotalAmount] = useState(0);
+    const [paidTotalQuantity, setPaidTotalQuantity] = useState(0);
+
+    // Persist paid summary per area
+    const SUMMARY_KEY_PREFIX = 'rc_delivery_paid_summary_area_';
+
+    useEffect(() => {
+        fetchOrders();
+        // Load persisted summary for this area (if any)
+        const loadSummary = async () => {
+            try {
+                if (!areaId) return;
+                const key = `${SUMMARY_KEY_PREFIX}${areaId}`;
+                const saved = await AsyncStorage.getItem(key);
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    setPaidOrders(Array.isArray(parsed.paidOrders) ? parsed.paidOrders : []);
+                    setPaidTotalAmount(typeof parsed.paidTotalAmount === 'number' ? parsed.paidTotalAmount : 0);
+                    setPaidTotalQuantity(typeof parsed.paidTotalQuantity === 'number' ? parsed.paidTotalQuantity : 0);
+                } else {
+                    setPaidOrders([]);
+                    setPaidTotalAmount(0);
+                    setPaidTotalQuantity(0);
+                }
+            } catch (e) {
+                // ignore persistence errors; keep runtime state
+            }
+        };
+        loadSummary();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [areaId]);
+
+    const fetchOrders = async () => {
+        try {
+            setIsLoading(true);
+            setError(null);
+            console.log(`🚚 Fetching orders for area: ${area} (ID: ${areaId})`);
+            
+            if (!areaId) {
+                throw new Error('Area ID is required');
+            }
+
+            const response = await deliveryService.getTodaysOrders(parseInt(areaId));
+            
+            // Ensure orders is always an array
+            const ordersArray = Array.isArray(response.orders) ? response.orders : [];
+            setOrders(ordersArray);
+            
+            // Do not reset paid summary here; it should persist until logout
+            
+            console.log(`✅ Loaded ${ordersArray.length} orders for area ${area}`);
+        } catch (error: any) {
+            console.error('❌ Failed to fetch orders:', error);
+            const errorMessage = ErrorUtils.getErrorMessage(error);
+            setError(errorMessage);
+            
+            Alert.alert(
+                'Error Loading Orders',
+                errorMessage,
+                [
+                    { text: 'Retry', onPress: fetchOrders },
+                    { text: 'Cancel', style: 'cancel' }
+                ]
+            );
+        } finally {
+            setIsLoading(false);
+        }
+    };
+    const handlePress = async (orderId: string, type: 'paid' | 'unpaid') => {
   const title = type === 'paid' ? 'Mark as Paid?' : 'Mark as Unpaid?';
-  const action = () => {
+        const action = async () => {
     setModalVisible(false); // close first modal
+            
+            try {
+                console.log(`🚚 Updating payment status for order ${orderId} to ${type}`);
+                await deliveryService.updatePaymentStatus(orderId, type);
+                
+                // Update local state
+                setOrders(prevOrders => 
+                    prevOrders.map(order => 
+                        order.order_id === orderId 
+                            ? { ...order, payment_status: type }
+                            : order
+                    )
+                );
+
+                // If marking as paid, add to paid orders tracking
+                if (type === 'paid') {
+                    const orderToMarkPaid = orders.find(order => order.order_id === orderId);
+                    if (orderToMarkPaid) {
+                        // Check if order is already in paid orders to prevent duplicates
+                        setPaidOrders(prevPaid => {
+                            const alreadyExists = prevPaid.some(paidOrder => paidOrder.order_id === orderId);
+                            if (alreadyExists) {
+                                return prevPaid; // Don't add duplicate
+                            }
+                            return [...prevPaid, { ...orderToMarkPaid, payment_status: 'paid' }];
+                        });
+                        
+                        // Update paid totals (only if not already counted)
+                        setPaidTotalAmount(prev => {
+                            const alreadyExists = paidOrders.some(paidOrder => paidOrder.order_id === orderId);
+                            if (alreadyExists) {
+                                return prev; // Don't add duplicate
+                            }
+                            return prev + (orderToMarkPaid.total_price || 0);
+                        });
+                        
+                        const orderQuantity = orderToMarkPaid.items?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0;
+                        setPaidTotalQuantity(prev => {
+                            const alreadyExists = paidOrders.some(paidOrder => paidOrder.order_id === orderId);
+                            if (alreadyExists) {
+                                return prev; // Don't add duplicate
+                            }
+                            return prev + orderQuantity;
+                        });
+                        // Persist latest summary per area
+                        if (areaId) {
+                            setTimeout(async () => {
+                                try {
+                                    const key = `${SUMMARY_KEY_PREFIX}${areaId}`;
+                                    const snapshot = {
+                                        paidOrders: [...paidOrders, { ...orderToMarkPaid, payment_status: 'paid' }].filter((v, i, arr) => arr.findIndex(a => a.order_id === v.order_id) === i),
+                                        paidTotalAmount: paidTotalAmount + (orderToMarkPaid.total_price || 0),
+                                        paidTotalQuantity: paidTotalQuantity + orderQuantity,
+                                    };
+                                    await AsyncStorage.setItem(key, JSON.stringify(snapshot));
+                                } catch (e) {
+                                    // ignore persistence errors
+                                }
+                            }, 0);
+                        }
+                    }
+                }
+                
     setTimeout(() => {
       setFeedbackMessage(type === 'paid' ? 'Marked as Paid' : 'Marked as Unpaid');
       setFeedbackVisible(true);
       setTimeout(() => setFeedbackVisible(false), 1200);
-    }, 300); // short delay to let first modal close
+                }, 300);
+
+                // Auto-refresh list after status update (summary stays as-is)
+                fetchOrders();
+                
+            } catch (error: any) {
+                console.error('❌ Failed to update payment status:', error);
+                setTimeout(() => {
+                    Alert.alert('Error', 'Failed to update payment status. Please try again.');
+                }, 300);
+            }
   };
 
   setModalTitle(title);
-  setModalMessage('');
+        setModalMessage(`Order ID: ${orderId}`);
   setOnConfirmAction(() => action);
   setModalVisible(true);
 };
 
 
 
-    const renderOrder = ({ item }: { item: Order }) => (
+    const renderOrder = ({ item }: { item: DeliveryOrder }) => (
         <View style={styles.orderCard}>
             <View style={styles.orderHeader}>
-                <Text style={styles.orderText}>Order ID : {item.id}</Text>
-                <Text style={styles.orderText}>User ID : {item.userId}</Text>
+                <Text style={styles.orderIdText}>Order ID: {item.order_id || 'N/A'}</Text>
             </View>
-            {item.items.map((orderItem: OrderItem, index: number) => (
+            <Text style={styles.customerNameText}>Customer: {item.customer_name || 'N/A'}</Text>
+            <Text style={styles.customerInfo}>Address: {item.customer_address || 'N/A'}</Text>
+            <Text style={styles.customerInfo}>Meal: {typeof item.meal_time === 'string' && item.meal_time.length > 0 ? (item.meal_time.charAt(0).toUpperCase() + item.meal_time.slice(1)) : 'N/A'}</Text>
+            
+            {Array.isArray(item.items) && item.items.map((orderItem, index) => (
                 <Text key={index} style={styles.itemText}>
-                    {orderItem.name} - {orderItem.quantity}
+                    {orderItem.food_name || 'Unknown Item'} - {orderItem.quantity || 0} ({orderItem.meal_type || 'unknown'})
                 </Text>
             ))}
-            <Text style={styles.priceText}>Price : Rs. {item.price.toFixed(2)}</Text>
+            {(!item.items || !Array.isArray(item.items)) && (
+                <Text style={styles.itemText}>No items available</Text>
+            )}
+            <Text style={styles.priceText}>Price : Rs. {Number(item.total_price || 0).toFixed(2)}</Text>
+            
             <View style={styles.paymentRow}>
-                <TouchableOpacity style={styles.unpaidButton} onPress={() => handlePress('unpaid')}>
+                <TouchableOpacity 
+                    style={[styles.unpaidButton, item.payment_status === 'unpaid' && styles.activeButton]} 
+                    onPress={() => handlePress(item.order_id, 'unpaid')}
+                >
                     <Text style={styles.unpaidText}>UNPAID</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.paidButton} onPress={() => handlePress('paid')}>
+                <TouchableOpacity 
+                    style={[styles.paidButton, item.payment_status === 'paid' && styles.activePaidButton]} 
+                    onPress={() => handlePress(item.order_id, 'paid')}
+                >
                     <Text style={styles.paidText}>PAID</Text>
                 </TouchableOpacity>
             </View>
         </View>
     );
 
+
+    if (isLoading) {
+        return (
+            <SafeAreaView style={styles.safeArea}>
+                <View style={[styles.container, styles.centerContent]}>
+                    <ActivityIndicator size="large" color="#69bf70" />
+                    <Text style={styles.loadingText}>Loading orders...</Text>
+                </View>
+            </SafeAreaView>
+        );
+    }
+
+    // Filter orders based on search (safe guards for undefined fields)
+    const filteredOrders = orders.filter(order => {
+        const query = (search || '').toLowerCase();
+        const orderId = String(order.order_id || '').toLowerCase();
+        const customerName = String(order.customer_name || '').toLowerCase();
+        const itemMatch = Array.isArray(order.items) && order.items.some(item =>
+            String(item.food_name || '').toLowerCase().includes(query)
+        );
+        return orderId.includes(query) || customerName.includes(query) || itemMatch;
+    });
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -157,10 +255,8 @@ const [feedbackMessage, setFeedbackMessage] = useState('');
                 <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#69bf70', marginBottom: 25 }}>
   Active Orders{area ? ` - ${area}` : ''}
 </Text>
-
               
                 <View style={styles.searchBar}>
-
                     <TextInput
                         style={styles.searchInput}
                         placeholder="Search orders"
@@ -170,26 +266,44 @@ const [feedbackMessage, setFeedbackMessage] = useState('');
                     />
                 </View>
 
-                <Text style={styles.pendingText}>Pending Deliveries : 116</Text>
+                <View style={styles.statsContainer}>
+                    <Text style={styles.pendingText}>Pending Deliveries: {filteredOrders.length}</Text>
+                </View>
 
+                {error && (
+                    <View style={styles.errorContainer}>
+                        <Text style={styles.errorText}>Error: {error}</Text>
+                        <TouchableOpacity onPress={fetchOrders} style={styles.retryButton}>
+                            <Text style={styles.retryText}>Retry</Text>
+                        </TouchableOpacity>
+                    </View>
+                )}
+
+                {filteredOrders.length === 0 && !isLoading && !error ? (
+                    <View style={styles.emptyContainer}>
+                        <Text style={styles.emptyText}>No orders found for this area</Text>
+                    </View>
+                ) : (
                 <FlatList
-                    data={ordersData}
-                    keyExtractor={(item, index) => index.toString()}
+                        data={filteredOrders}
+                        keyExtractor={(item) => item.order_id}
                     renderItem={renderOrder}
-                    contentContainerStyle={{ paddingBottom: 180 }} // more bottom space
+                        contentContainerStyle={{ paddingBottom: 180 }}
                     showsVerticalScrollIndicator={false}
+                        refreshing={isLoading}
                 />
+                )}
             </View>
 
-            {/* Fixed Summary ABOVE Tab Bar */}
+            {/* Fixed Summary ABOVE Tab Bar - Shows only paid orders */}
             <View style={styles.summaryContainer}>
                 <View style={styles.summaryRow}>
-                    <Text style={styles.summaryLabel}>Parcel Quantity:</Text>
-                    <Text style={styles.summaryValue}>21</Text>
+                    <Text style={styles.summaryLabel}>Paid Parcels:</Text>
+                    <Text style={styles.summaryValue}>{paidTotalQuantity}</Text>
                 </View>
                 <View style={styles.summaryRow}>
-                    <Text style={styles.summaryLabel}>Total:</Text>
-                    <Text style={styles.summaryValue}>Rs. 9580.00</Text>
+                    <Text style={styles.summaryLabel}>Paid Total:</Text>
+                    <Text style={styles.summaryValue}>Rs. {Number(paidTotalAmount || 0).toFixed(2)}</Text>
                 </View>
             </View>
            <CancelModal
@@ -264,14 +378,18 @@ const styles = StyleSheet.create({
         elevation: 4,
     },
     orderHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginBottom: 8,
+        marginBottom: 4,
     },
-    orderText: {
-        fontSize: 16,
+    orderIdText: {
+        fontSize: 12,
         fontWeight: 'bold',
         color: '#000',
+    },
+    customerNameText: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: '#333',
+        marginBottom: 6,
     },
     itemText: {
         fontSize: 14,
@@ -349,7 +467,81 @@ const styles = StyleSheet.create({
         color: '#555',
         marginBottom: 20,
         marginTop: -12, // slight overlap if needed
-    }
+    },
+    centerContent: {
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    loadingText: {
+        marginTop: 15,
+        fontSize: 16,
+        color: '#666',
+        textAlign: 'center',
+    },
+    statsContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 14,
+    },
+    refreshButton: {
+        backgroundColor: '#69bf70',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 6,
+    },
+    refreshText: {
+        color: 'white',
+        fontSize: 12,
+        fontWeight: '600',
+    },
+    errorContainer: {
+        backgroundColor: '#ffe6e6',
+        padding: 15,
+        borderRadius: 8,
+        marginBottom: 15,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    errorText: {
+        color: '#d63031',
+        flex: 1,
+        marginRight: 10,
+    },
+    retryButton: {
+        backgroundColor: '#ff6b6b',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 6,
+    },
+    retryText: {
+        color: 'white',
+        fontSize: 12,
+        fontWeight: '600',
+    },
+    emptyContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingVertical: 50,
+    },
+    emptyText: {
+        fontSize: 16,
+        color: '#666',
+        textAlign: 'center',
+    },
+    customerInfo: {
+        fontSize: 12,
+        color: '#666',
+        marginVertical: 1,
+    },
+    activeButton: {
+        backgroundColor: '#ff6b6b',
+    },
+    activePaidButton: {
+        backgroundColor: '#69bf70',
+    },
 
 });
 
