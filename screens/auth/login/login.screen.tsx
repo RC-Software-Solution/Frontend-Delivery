@@ -8,6 +8,7 @@ import { Entypo, Ionicons } from "@expo/vector-icons";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from "expo-router";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { getFcmToken } from "@/services/push/push.service";
 
 export default function LoginScreen() {
   const [isPasswordVisible, setPasswordVisible] = useState(false);
@@ -73,7 +74,7 @@ export default function LoginScreen() {
       const response = await authService.login({
         email: email.trim(),
         password,
-        fcm_token: "", // You can implement FCM token later
+        fcm_token: (await getFcmToken()) ?? "",
       });
 
       console.log("✅ Login successful:", response.user.full_name);
