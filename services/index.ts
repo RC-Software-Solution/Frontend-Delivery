@@ -18,6 +18,8 @@ export { TokenUtils } from './utils/token.utils';
 export { BaseApiClient } from './clients/base-api.client';
 export { DeliveryApiClient } from './clients/delivery-api.client';
 export { LocationApiClient } from './clients/location-api.client';
+export { MenuApiClient } from './clients/menu-api.client';
+export type { DeliverySession } from './clients/menu-api.client';
 export { UserApiClient } from './clients/user-api.client';
 
 // Export services
@@ -31,12 +33,12 @@ export { useLocation } from './hooks/useLocation';
 
 // Create singleton instances for easy use
 import { AuthenticationService } from './auth/authentication.service';
-import { UserApiClient } from './clients/user-api.client';
+import { MenuApiClient } from './clients/menu-api.client';
 import { DeliveryService } from './delivery/delivery.service';
 import { LocationService } from './location/location.service';
 
 // Singleton instances
-export const userApi = new UserApiClient();
+export const menuApi = new MenuApiClient();
 export const authService = new AuthenticationService();
 export const deliveryService = new DeliveryService();
 export const locationService = new LocationService();

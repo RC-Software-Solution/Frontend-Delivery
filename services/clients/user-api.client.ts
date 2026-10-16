@@ -110,22 +110,6 @@ export class UserApiClient extends BaseApiClient {
   }
 
   /**
-   * Areas this driver covers (`mine`) and areas other active drivers hold (`taken`); the rest are free to take
-   */
-  async getMyAreas(): Promise<{ mine: number[]; taken: number[] }> {
-    const response = await this.get<{ mine: number[]; taken: number[] }>('/users/delivery-persons/me/areas');
-    return response.data;
-  }
-
-  /**
-   * Replace this driver's areas. Fails (409) when an added area is held by another active driver.
-   */
-  async setMyAreas(areaIds: number[]): Promise<{ mine: number[] }> {
-    const response = await this.put<{ mine: number[] }>('/users/delivery-persons/me/areas', { area_ids: areaIds });
-    return response.data;
-  }
-
-  /**
    * Refresh access token
    */
   async refreshToken(data: RefreshTokenRequest): Promise<RefreshTokenResponse> {

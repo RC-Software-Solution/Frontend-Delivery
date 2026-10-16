@@ -1,4 +1,4 @@
-import { Area, authService, ErrorUtils, locationService, userApi } from '@/services';
+import { Area, authService, DeliverySession, ErrorUtils, locationService, menuApi } from '@/services';
 import { Raleway_700Bold, useFonts } from '@expo-google-fonts/raleway';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
@@ -14,9 +14,9 @@ export default function AreaSelectionScreen() {
     const [areas, setAreas] = useState<Area[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    // null = the areas lookup failed; fall back to showing every area like before
-    const [mine, setMine] = useState<number[] | null>(null);
-    const [taken, setTaken] = useState<number[]>([]);
+    // Drivers work in the sessions an admin assigned them to today; areas are per session
+    const [sessions, setSessions] = useState<DeliverySession[]>([]);
+    const [sessionId, setSessionId] = useState<number | null>(null);
 
     useEffect(() => {
         fetchAreas();
@@ -28,13 +28,14 @@ export default function AreaSelectionScreen() {
             setError(null);
             console.log('📍 Fetching areas for area selection...');
             
-            const [fetchedAreas, my] = await Promise.all([
+            const [fetchedAreas, mySessions] = await Promise.all([
                 locationService.getAreas(),
-                userApi.getMyAreas().catch(() => null),
+                menuApi.getMyDeliverySessions(),
             ]);
             setAreas(fetchedAreas);
-            setMine(my?.mine ?? null);
-            setTaken(my?.taken ?? []);
+            setSessions(mySessions);
+            // keep the chosen session if it is still assigned, else start on the first
+            setSessionId((cur) => (mySessions.some((x) => x.id === cur) ? cur : mySessions[0]?.id ?? null));
             console.log(`✅ Loaded ${fetchedAreas.length} areas for selection`);
         } catch (error: any) {
             console.error('❌ Failed to fetch areas:', error);
@@ -69,26 +70,30 @@ export default function AreaSelectionScreen() {
         });
     };
 
-    // Take a free area: it joins this driver's areas (the server refuses one another driver already holds)
+    const session = sessions.find((x) => x.id === sessionId) ?? null;
+
+    // Take a free area in this session (the server refuses one another driver already holds)
     const claimArea = async (area: Area) => {
+        if (!session) return;
         try {
-            await userApi.setMyAreas([...(mine ?? []), Number(area.area_id)]);
-            setMine([...(mine ?? []), Number(area.area_id)]);
+            await menuApi.setMyDeliveryAreas(session.id, [...session.mine, Number(area.area_id)]);
             handleAreaSelection(area);
         } catch (e: any) {
             Alert.alert('Could not take this area', ErrorUtils.getErrorMessage(e));
+        } finally {
             fetchAreas();
         }
     };
 
-    // Give an area up so another driver can take it (a driver always keeps at least one)
+    // Give an area up so another driver can take it (a driver always keeps at least one in the session)
     const releaseArea = async (area: Area) => {
+        if (!session) return;
         try {
-            const next = (mine ?? []).filter((id) => id !== Number(area.area_id));
-            await userApi.setMyAreas(next);
-            setMine(next);
+            await menuApi.setMyDeliveryAreas(session.id, session.mine.filter((id) => id !== Number(area.area_id)));
         } catch (e: any) {
             Alert.alert('Could not release this area', ErrorUtils.getErrorMessage(e));
+        } finally {
+            fetchAreas();
         }
     };
 
@@ -146,6 +151,14 @@ export default function AreaSelectionScreen() {
                                 <Text style={styles.retryButtonText}>Retry</Text>
                             </TouchableOpacity>
                         </View>
+                    ) : sessions.length === 0 ? (
+                        // Not assigned to any session today
+                        <View style={styles.noAreasContainer}>
+                            <Text style={styles.noAreasText}>You are not assigned to a meal session today. Please contact an administrator.</Text>
+                            <TouchableOpacity style={styles.retryButton} onPress={fetchAreas}>
+                                <Text style={styles.retryButtonText}>Refresh</Text>
+                            </TouchableOpacity>
+                        </View>
                     ) : areas.length === 0 ? (
                         // No Areas State
                         <View style={styles.noAreasContainer}>
@@ -155,34 +168,45 @@ export default function AreaSelectionScreen() {
                             </TouchableOpacity>
                         </View>
                     ) : (
-                        // Areas List: mine first, then free areas to take, then areas other drivers hold
-                        (mine === null
-                            ? [{ title: '', kind: 'mine' as const, list: areas }]
-                            : [
-                                { title: 'My areas', kind: 'mine' as const, list: areas.filter((a) => mine.includes(Number(a.area_id))) },
-                                { title: 'Unassigned areas (tap to take)', kind: 'free' as const, list: areas.filter((a) => !mine.includes(Number(a.area_id)) && !taken.includes(Number(a.area_id))) },
-                                { title: 'Covered by other drivers', kind: 'taken' as const, list: areas.filter((a) => !mine.includes(Number(a.area_id)) && taken.includes(Number(a.area_id))) },
-                            ]
-                        ).filter((g) => g.list.length > 0).map((g) => (
-                            <View key={g.kind}>
-                                {g.title !== '' && <Text style={styles.sectionTitle}>{g.title}</Text>}
-                                {g.list.map((area) => (
+                        // Session chooser, its notes, then areas: mine first, free areas to take, areas other drivers hold
+                        <View>
+                            <View style={styles.sessionRow}>
+                                {sessions.map((x) => (
                                     <TouchableOpacity
-                                        key={area.area_id}
-                                        style={[styles.areaButton, g.kind === 'taken' && styles.areaButtonDisabled]}
-                                        disabled={g.kind === 'taken'}
-                                        onPress={() => (g.kind === 'free' ? claimArea(area) : handleAreaSelection(area))}
+                                        key={x.id}
+                                        style={[styles.sessionChip, x.id === sessionId && styles.sessionChipActive]}
+                                        onPress={() => setSessionId(x.id)}
                                     >
-                                        <Text style={styles.areaText}>{area.area_name}</Text>
-                                        {g.kind === 'mine' && mine !== null && mine.length > 1 && (
-                                            <TouchableOpacity onPress={() => releaseArea(area)}>
-                                                <Text style={styles.releaseText}>Release</Text>
-                                            </TouchableOpacity>
-                                        )}
+                                        <Text style={[styles.sessionChipText, x.id === sessionId && styles.sessionChipTextActive]}>{x.meal_time}</Text>
                                     </TouchableOpacity>
                                 ))}
                             </View>
-                        ))
+                            {session?.notes ? <Text style={styles.notes}>{session.notes}</Text> : null}
+                            {session && [
+                                { title: 'My areas', kind: 'mine' as const, list: areas.filter((a) => session.mine.includes(Number(a.area_id))) },
+                                { title: 'Unassigned areas (tap to take)', kind: 'free' as const, list: areas.filter((a) => !session.mine.includes(Number(a.area_id)) && !session.taken.includes(Number(a.area_id))) },
+                                { title: 'Covered by other drivers', kind: 'taken' as const, list: areas.filter((a) => !session.mine.includes(Number(a.area_id)) && session.taken.includes(Number(a.area_id))) },
+                            ].filter((g) => g.list.length > 0).map((g) => (
+                                <View key={g.kind}>
+                                    <Text style={styles.sectionTitle}>{g.title}</Text>
+                                    {g.list.map((area) => (
+                                        <TouchableOpacity
+                                            key={area.area_id}
+                                            style={[styles.areaButton, g.kind === 'taken' && styles.areaButtonDisabled]}
+                                            disabled={g.kind === 'taken'}
+                                            onPress={() => (g.kind === 'free' ? claimArea(area) : handleAreaSelection(area))}
+                                        >
+                                            <Text style={styles.areaText}>{area.area_name}</Text>
+                                            {g.kind === 'mine' && session.mine.length > 1 && (
+                                                <TouchableOpacity onPress={() => releaseArea(area)}>
+                                                    <Text style={styles.releaseText}>Release</Text>
+                                                </TouchableOpacity>
+                                            )}
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+                            ))}
+                        </View>
                     )}
                 </View>
             </ScrollView>
@@ -233,6 +257,35 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         marginBottom: 30,
         color: '#000',
+    },
+    sessionRow: {
+        flexDirection: 'row',
+        gap: 10,
+        marginBottom: 16,
+    },
+    sessionChip: {
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 20,
+        backgroundColor: '#e5e7eb',
+    },
+    sessionChipActive: {
+        backgroundColor: '#69bf70',
+    },
+    sessionChipText: {
+        textTransform: 'capitalize',
+        color: '#333',
+        fontWeight: '600',
+    },
+    sessionChipTextActive: {
+        color: '#fff',
+    },
+    notes: {
+        backgroundColor: '#f1f5f9',
+        borderRadius: 8,
+        padding: 10,
+        marginBottom: 16,
+        color: '#334155',
     },
     sectionTitle: {
         fontSize: 14,
