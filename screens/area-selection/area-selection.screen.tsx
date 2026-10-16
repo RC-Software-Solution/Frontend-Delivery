@@ -1,4 +1,4 @@
-import { Area, authService, ErrorUtils, locationService } from '@/services';
+import { Area, authService, ErrorUtils, locationService, userApi } from '@/services';
 import { Raleway_700Bold, useFonts } from '@expo-google-fonts/raleway';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
@@ -14,6 +14,9 @@ export default function AreaSelectionScreen() {
     const [areas, setAreas] = useState<Area[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    // null = the areas lookup failed; fall back to showing every area like before
+    const [mine, setMine] = useState<number[] | null>(null);
+    const [taken, setTaken] = useState<number[]>([]);
 
     useEffect(() => {
         fetchAreas();
@@ -25,8 +28,13 @@ export default function AreaSelectionScreen() {
             setError(null);
             console.log('📍 Fetching areas for area selection...');
             
-            const fetchedAreas = await locationService.getAreas();
+            const [fetchedAreas, my] = await Promise.all([
+                locationService.getAreas(),
+                userApi.getMyAreas().catch(() => null),
+            ]);
             setAreas(fetchedAreas);
+            setMine(my?.mine ?? null);
+            setTaken(my?.taken ?? []);
             console.log(`✅ Loaded ${fetchedAreas.length} areas for selection`);
         } catch (error: any) {
             console.error('❌ Failed to fetch areas:', error);
@@ -59,6 +67,29 @@ export default function AreaSelectionScreen() {
                 areaId: area.area_id.toString()
             },
         });
+    };
+
+    // Take a free area: it joins this driver's areas (the server refuses one another driver already holds)
+    const claimArea = async (area: Area) => {
+        try {
+            await userApi.setMyAreas([...(mine ?? []), Number(area.area_id)]);
+            setMine([...(mine ?? []), Number(area.area_id)]);
+            handleAreaSelection(area);
+        } catch (e: any) {
+            Alert.alert('Could not take this area', ErrorUtils.getErrorMessage(e));
+            fetchAreas();
+        }
+    };
+
+    // Give an area up so another driver can take it (a driver always keeps at least one)
+    const releaseArea = async (area: Area) => {
+        try {
+            const next = (mine ?? []).filter((id) => id !== Number(area.area_id));
+            await userApi.setMyAreas(next);
+            setMine(next);
+        } catch (e: any) {
+            Alert.alert('Could not release this area', ErrorUtils.getErrorMessage(e));
+        }
     };
 
     if (!fontsLoaded) {
@@ -124,15 +155,33 @@ export default function AreaSelectionScreen() {
                             </TouchableOpacity>
                         </View>
                     ) : (
-                        // Areas List
-                        areas.map((area) => (
-                            <TouchableOpacity
-                                key={area.area_id}
-                                style={styles.areaButton}
-                                onPress={() => handleAreaSelection(area)}
-                            >
-                                <Text style={styles.areaText}>{area.area_name}</Text>
-                            </TouchableOpacity>
+                        // Areas List: mine first, then free areas to take, then areas other drivers hold
+                        (mine === null
+                            ? [{ title: '', kind: 'mine' as const, list: areas }]
+                            : [
+                                { title: 'My areas', kind: 'mine' as const, list: areas.filter((a) => mine.includes(Number(a.area_id))) },
+                                { title: 'Unassigned areas (tap to take)', kind: 'free' as const, list: areas.filter((a) => !mine.includes(Number(a.area_id)) && !taken.includes(Number(a.area_id))) },
+                                { title: 'Covered by other drivers', kind: 'taken' as const, list: areas.filter((a) => !mine.includes(Number(a.area_id)) && taken.includes(Number(a.area_id))) },
+                            ]
+                        ).filter((g) => g.list.length > 0).map((g) => (
+                            <View key={g.kind}>
+                                {g.title !== '' && <Text style={styles.sectionTitle}>{g.title}</Text>}
+                                {g.list.map((area) => (
+                                    <TouchableOpacity
+                                        key={area.area_id}
+                                        style={[styles.areaButton, g.kind === 'taken' && styles.areaButtonDisabled]}
+                                        disabled={g.kind === 'taken'}
+                                        onPress={() => (g.kind === 'free' ? claimArea(area) : handleAreaSelection(area))}
+                                    >
+                                        <Text style={styles.areaText}>{area.area_name}</Text>
+                                        {g.kind === 'mine' && mine !== null && mine.length > 1 && (
+                                            <TouchableOpacity onPress={() => releaseArea(area)}>
+                                                <Text style={styles.releaseText}>Release</Text>
+                                            </TouchableOpacity>
+                                        )}
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
                         ))
                     )}
                 </View>
@@ -184,6 +233,20 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         marginBottom: 30,
         color: '#000',
+    },
+    sectionTitle: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#555',
+        marginBottom: 10,
+    },
+    areaButtonDisabled: {
+        opacity: 0.45,
+    },
+    releaseText: {
+        marginTop: 6,
+        color: '#b91c1c',
+        fontWeight: '600',
     },
     areaButton: {
         backgroundColor: '#D9D9D9',

@@ -31,10 +31,12 @@ export { useLocation } from './hooks/useLocation';
 
 // Create singleton instances for easy use
 import { AuthenticationService } from './auth/authentication.service';
+import { UserApiClient } from './clients/user-api.client';
 import { DeliveryService } from './delivery/delivery.service';
 import { LocationService } from './location/location.service';
 
 // Singleton instances
+export const userApi = new UserApiClient();
 export const authService = new AuthenticationService();
 export const deliveryService = new DeliveryService();
 export const locationService = new LocationService();
