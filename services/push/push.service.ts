@@ -1,10 +1,17 @@
+import { isRunningInExpoGo } from 'expo';
 import * as Device from 'expo-device';
-import * as Notifications from 'expo-notifications';
+import type * as NotificationsModule from 'expo-notifications';
 import { Platform } from 'react-native';
+
+// Expo Go lacks expo-notifications' FCM native modules (e.g.
+// ExpoTopicSubscriptionModule), so importing the package there throws.
+const Notifications: typeof NotificationsModule | null = isRunningInExpoGo()
+  ? null
+  : require('expo-notifications');
 
 // Show notifications while the app is foregrounded; without this they arrive
 // silently and only appear in the tray after the app is backgrounded.
-Notifications.setNotificationHandler({
+Notifications?.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowBanner: true,
     shouldShowList: true,
@@ -23,6 +30,8 @@ Notifications.setNotificationHandler({
  * token, so the mistake looks like an unsubscribe rather than a bug.
  */
 export async function getFcmToken(): Promise<string | null> {
+  if (!Notifications) return null;
+
   // iOS Simulator has no APNs registration; Android emulators with Play
   // Services do get real FCM tokens, so only iOS is excluded here.
   if (Platform.OS === 'ios' && !Device.isDevice) return null;
