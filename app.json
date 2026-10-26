@@ -7,7 +7,6 @@
     "icon": "./assets/images/icon.png",
     "scheme": "rcdelivery",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.company.rc.delivery"
@@ -17,7 +16,6 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true,
       "package": "com.company.rc.delivery",
       "googleServicesFile": "./google-services.json"
     },
