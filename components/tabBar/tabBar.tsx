@@ -1,11 +1,11 @@
 import { View, StyleSheet, LayoutChangeEvent } from 'react-native';
-import { useTheme } from '@react-navigation/native';
-import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import { useTheme } from 'expo-router/react-navigation';
+import { BottomTabBarProps } from 'expo-router/js-tabs';
 import { useState, useEffect } from 'react';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import TabBarButton from '../tabBarButton/tabBarButton';
 
-export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
+export function TabBar({ state, descriptors, emitter, navigateToTab }: BottomTabBarProps) {
   const [dimensions, setDimensions] = useState({ height: 50, width: 300 });
   const buttonWidth = dimensions.width / state.routes.length;
   const tabPositionX = useSharedValue(0);
@@ -49,9 +49,9 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
 
         const onPress = () => {
           tabPositionX.value = withSpring(buttonWidth * index, { damping: 15, stiffness: 100 });
-          const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
+          const event = emitter.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
           if (!isFocused && !event.defaultPrevented) {
-            navigation.navigate(route.name, route.params);
+            navigateToTab(route.key);
           }
         };
 
@@ -59,7 +59,7 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
           <TabBarButton
             key={route.key}
             onPress={onPress}
-            onLongPress={() => navigation.emit({ type: 'tabLongPress', target: route.key })}
+            onLongPress={() => emitter.emit({ type: 'tabLongPress', target: route.key })}
             isFocused={isFocused}
             routeName={route.name}
             color={isFocused ? '#69bf70' : '#222'}
