@@ -71,10 +71,7 @@ const [feedbackMessage, setFeedbackMessage] = useState('');
                 throw new Error('Area ID is required');
             }
 
-            const response = await deliveryService.getTodaysOrders(parseInt(areaId));
-            
-            // Ensure orders is always an array
-            const ordersArray = Array.isArray(response.orders) ? response.orders : [];
+            const ordersArray = await deliveryService.getUnpaidOrders(parseInt(areaId));
             setOrders(ordersArray);
             
             // Do not reset paid summary here; it should persist until logout
@@ -104,7 +101,7 @@ const [feedbackMessage, setFeedbackMessage] = useState('');
             
             try {
                 console.log(`🚚 Updating payment status for order ${orderId} to ${type}`);
-                await deliveryService.updatePaymentStatus(orderId, type);
+                await deliveryService.setPayment(orderId, type);
                 
                 // Update local state
                 setOrders(prevOrders => 

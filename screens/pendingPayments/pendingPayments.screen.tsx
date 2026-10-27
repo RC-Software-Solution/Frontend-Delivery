@@ -78,8 +78,7 @@ const PendingPaymentsScreen = () => {
       setError(null);
       const idToUse = idOverride ?? selectedAreaId ?? areaId;
       if (!idToUse) throw new Error('Area ID is required');
-      const response = await deliveryService.getAreaOrders({ area_id: parseInt(idToUse), payment_status: 'unpaid' });
-      const ordersArray = Array.isArray(response.orders) ? response.orders : [];
+      const ordersArray = await deliveryService.getUnpaidOrders(parseInt(idToUse));
       setOrders(ordersArray);
     } catch (err: any) {
       const message = ErrorUtils.getErrorMessage(err);
@@ -94,7 +93,7 @@ const PendingPaymentsScreen = () => {
     const action = async () => {
       setModalVisible(false);
       try {
-        await deliveryService.updatePaymentStatus(orderId, 'paid');
+        await deliveryService.setPayment(orderId, 'paid');
         // Update local list state
         setOrders(prev => prev.map(o => o.order_id === orderId ? { ...o, payment_status: 'paid' } : o));
 
