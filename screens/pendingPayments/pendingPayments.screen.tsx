@@ -3,7 +3,7 @@ import { DeliveryOrder, ErrorUtils, deliveryService } from '@/services';
 import { STATUS_LABEL, colomboToday, formatRs, groupByDate, matchesSearch } from '@/services/delivery/orderView';
 import { DeliverySelection, loadSelection } from '@/services/delivery/selection';
 import { useFocusEffect } from 'expo-router';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { Alert, SafeAreaView, SectionList, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 const capitalize = (s: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : 'N/A');
@@ -17,21 +17,28 @@ const PendingPaymentsScreen = () => {
   const [busy, setBusy] = useState(false);
   const [paying, setPaying] = useState<DeliveryOrder | null>(null);
 
+  const loadSeq = useRef(0);
+
+  // Only the latest reload may write state: a slow earlier one must not overwrite newer data
   const load = useCallback(async () => {
+    const seq = ++loadSeq.current;
     setIsLoading(true);
     setError(null);
     try {
       const sel = await loadSelection();
+      if (seq !== loadSeq.current) return;
       setSelection(sel);
       if (!sel) {
         setError('Choose a delivery area first');
         return;
       }
-      setOrders(await deliveryService.getUnpaidOrders(sel.areaId));
+      const list = await deliveryService.getUnpaidOrders(sel.areaId);
+      if (seq !== loadSeq.current) return;
+      setOrders(list);
     } catch (e) {
-      setError(ErrorUtils.getErrorMessage(e));
+      if (seq === loadSeq.current) setError(ErrorUtils.getErrorMessage(e));
     } finally {
-      setIsLoading(false);
+      if (seq === loadSeq.current) setIsLoading(false);
     }
   }, []);
 
@@ -66,7 +73,7 @@ const PendingPaymentsScreen = () => {
       <Text style={styles.itemText}>Meal: {capitalize(item.meal_time)}</Text>
       <Text style={styles.priceText}>Price : {formatRs(item.total_price)}</Text>
       <View style={styles.paymentRow}>
-        <TouchableOpacity accessibilityRole="button" disabled={busy} style={styles.paidButton} onPress={() => setPaying(item)}>
+        <TouchableOpacity accessibilityRole="button" disabled={busy || isLoading} style={styles.paidButton} onPress={() => setPaying(item)}>
           <Text style={styles.paidText}>PAID</Text>
         </TouchableOpacity>
       </View>
