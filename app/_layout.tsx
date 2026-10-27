@@ -1,33 +1,13 @@
-import { View, Text } from 'react-native'
-import React from 'react'
-import { useState } from 'react'
-import { useEffect } from 'react'
-import { Stack } from 'expo-router'
-import TabsLayout from './(tabs)/_layout'
+import { Stack } from 'expo-router';
+import React from 'react';
 
-
-
-const  RootLayout = () => {
-  const [isLoggedIn,setisLoggedIn] = useState(false);
-  
+export default function RootLayout() {
   return (
-   
-    <>
-    {isLoggedIn ? (
-      <><TabsLayout />
-      <Stack.Screen name="(routes)/area-selection/index" /></>
-    ) : (
-      <Stack screenOptions={{headerShown: false}}>
-          <Stack.Screen name="index" />
-         
-          <Stack.Screen name="(routes)/login/index" />
-         
-         
-      </Stack>
-   
-    )}
-    </> 
-  )
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="index" />
+      <Stack.Screen name="(routes)/login/index" />
+      <Stack.Screen name="(routes)/area-selection/index" />
+      <Stack.Screen name="(tabs)" />
+    </Stack>
+  );
 }
-
-export default  RootLayout

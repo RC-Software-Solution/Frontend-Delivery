@@ -5,7 +5,7 @@ import { authService, ErrorUtils } from "@/services";
 import { Nunito_400Regular, Nunito_700Bold } from "@expo-google-fonts/nunito";
 import { Raleway_700Bold, useFonts } from "@expo-google-fonts/raleway";
 import { Entypo, Ionicons } from "@expo/vector-icons";
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { clearDeliveryStorage } from '@/services/delivery/selection';
 import { router } from "expo-router";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { getFcmToken } from "@/services/push/push.service";
@@ -80,17 +80,7 @@ export default function LoginScreen() {
       console.log("✅ Login successful:", response.user.full_name);
       
       // Clear previous session selections and summaries to start fresh
-      try {
-        const keys = await AsyncStorage.getAllKeys();
-        const toRemove = keys.filter(k => 
-          k.startsWith('rc_delivery_paid_summary_area_') ||
-          k.startsWith('rc_delivery_unpaid_collected_area_') ||
-          k === 'rc_selected_area'
-        );
-        if (toRemove.length) {
-          await AsyncStorage.multiRemove(toRemove);
-        }
-      } catch {}
+      try { await clearDeliveryStorage(); } catch {}
 
       // Show success message
       Alert.alert(
