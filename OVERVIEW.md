@@ -2,6 +2,8 @@
 
 RC is a food-delivery platform: a customer app, this delivery-driver app, an admin console, and a backend of microservices. This file is a brief orientation for anyone (including a future Claude Code session) opening this repo on its own, without the rest of the project's context. Full detail lives in the RC root: `../GO-LIVE-PLAYBOOK.md` and `../AWS-INFRASTRUCTURE-PLAYBOOK.md`.
 
+> **In-flight work:** the driver delivery flow (marking orders delivered, server-side counts, unpaid list). Start at `docs/superpowers/START-HERE.md`.
+
 ## What this repo is
 
 An Expo/React Native app (file-based routing via `expo-router`) — the app delivery drivers use to see assigned orders and mark payment collected. **`main` is the branch to use here** — it's already ahead of `origin/dev`, which is missing most of the real service-integration code found on `main`.
