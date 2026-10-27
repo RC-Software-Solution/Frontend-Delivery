@@ -4,7 +4,7 @@ import { DeliveryOrder, DeliverySession, DriverSummary, ErrorUtils, deliveryServ
 import { OrderAction, OrderFilter, STATUS_LABEL, formatRs, needsStart, orderActions, parcelsOf, visibleOrders } from '@/services/delivery/orderView';
 import { DeliverySelection, loadSelection } from '@/services/delivery/selection';
 import { useFocusEffect } from 'expo-router';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 const FILTERS: { key: OrderFilter; label: string }[] = [
@@ -38,11 +38,16 @@ const HomeScreen = () => {
     const [failing, setFailing] = useState<DeliveryOrder | null>(null);
     const [askPaid, setAskPaid] = useState<DeliveryOrder | null>(null);
 
+    const loadSeq = useRef(0);
+
+    // Only the latest reload may write state: a slow earlier one must not overwrite newer data
     const load = useCallback(async () => {
+        const seq = ++loadSeq.current;
         setIsLoading(true);
         setError(null);
         try {
             const sel = await loadSelection();
+            if (seq !== loadSeq.current) return;
             setSelection(sel);
             if (!sel) {
                 setError('Choose a delivery area first');
@@ -54,13 +59,14 @@ const HomeScreen = () => {
                 deliveryService.getSummary(scope),
                 menuApi.getMyDeliverySessions(),
             ]);
+            if (seq !== loadSeq.current) return;
             setOrders(list);
             setSummary(counters);
             setSession(sessions.find((s) => s.id === sel.sessionId) ?? null);
         } catch (e) {
-            setError(ErrorUtils.getErrorMessage(e));
+            if (seq === loadSeq.current) setError(ErrorUtils.getErrorMessage(e));
         } finally {
-            setIsLoading(false);
+            if (seq === loadSeq.current) setIsLoading(false);
         }
     }, []);
 
@@ -119,7 +125,7 @@ const HomeScreen = () => {
     };
 
     const shown = visibleOrders(orders, filter, search);
-    const canStart = session?.state === 'closed' && !busy;
+    const canStart = session?.state === 'closed' && !busy && !isLoading;
 
     const renderOrder = ({ item }: { item: DeliveryOrder }) => (
         <View testID={`order-${item.order_id}`} style={styles.orderCard}>
@@ -143,7 +149,7 @@ const HomeScreen = () => {
                     <TouchableOpacity
                         key={action}
                         accessibilityRole="button"
-                        disabled={busy}
+                        disabled={busy || isLoading}
                         style={[styles.actionButton, styles[action]]}
                         onPress={() => onAction(item, action)}
                     >
@@ -252,9 +258,9 @@ const HomeScreen = () => {
 
             <CancelModal
                 visible={!!confirm}
-                title={confirm?.title}
-                message={confirm?.message}
-                confirmText={confirm?.confirmText}
+                title={confirm?.title ?? ''}
+                message={confirm?.message ?? ''}
+                confirmText={confirm?.confirmText ?? ''}
                 cancelText="Back"
                 onClose={() => setConfirm(null)}
                 onConfirm={() => {

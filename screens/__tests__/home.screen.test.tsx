@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react-native';
 import React from 'react';
 import { Alert } from 'react-native';
 import HomeScreen from '../home/home.screen';
@@ -94,6 +94,36 @@ it('Delivered on an order not yet paid then asks whether it was paid', async () 
   expect(await screen.findByText('Was it paid?')).toBeTruthy();
   await fireEvent.press(screen.getByText('Paid'));
   await waitFor(() => expect(svc.setPayment).toHaveBeenCalledWith('B', 'paid'));
+});
+
+it('a slow earlier reload cannot overwrite the newer one', async () => {
+  await render(<HomeScreen />);
+  await fireEvent.press(within(await screen.findByTestId('order-B')).getByRole('button', { name: 'DELIVERED' }));
+
+  // the reload that follows markDelivered hangs; the one after "Paid" answers at once
+  let releaseOrders: (v: unknown[]) => void = () => {};
+  let releaseSummary: (v: unknown) => void = () => {};
+  svc.getSessionOrders
+    .mockReturnValueOnce(new Promise((resolve) => { releaseOrders = resolve; }))
+    .mockResolvedValueOnce([order('A', 'pending'), order('B', 'delivered', 'paid')]);
+  svc.getSummary
+    .mockReturnValueOnce(new Promise((resolve) => { releaseSummary = resolve; }))
+    .mockResolvedValueOnce({ ...SUMMARY, collected: { orders: 3, amount: 1350 } });
+
+  await fireEvent.press(screen.getByText('Yes, delivered'));
+  expect(await screen.findByText('Was it paid?')).toBeTruthy();
+  await waitFor(() => expect(svc.getSessionOrders).toHaveBeenCalledTimes(2));
+  await fireEvent.press(screen.getByText('Paid'));
+  await waitFor(() => expect(svc.setPayment).toHaveBeenCalledWith('B', 'paid'));
+  expect(await screen.findByText('Collected: Rs. 1350.00')).toBeTruthy();
+
+  // the stale reload finally lands with the old numbers
+  await act(async () => {
+    releaseOrders([order('A', 'pending'), order('B', 'delivered', 'pending')]);
+    releaseSummary(SUMMARY);
+  });
+  expect(screen.getByText('Collected: Rs. 1350.00')).toBeTruthy();
+  expect(screen.queryByText('Collected: Rs. 900.00')).toBeNull();
 });
 
 it('Failed needs a reason and sends it', async () => {
