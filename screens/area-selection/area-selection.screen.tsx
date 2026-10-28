@@ -1,6 +1,6 @@
 import { Area, authService, DeliverySession, ErrorUtils, locationService, menuApi } from '@/services';
+import { clearDeliveryStorage, saveSelection } from '@/services/delivery/selection';
 import { Raleway_700Bold, useFonts } from '@expo-google-fonts/raleway';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -55,22 +55,21 @@ export default function AreaSelectionScreen() {
         }
     };
 
-    const handleAreaSelection = async (area: Area) => {
-        console.log(`📍 Area selected: ${area.area_name} (ID: ${area.area_id})`);
-        try {
-            await AsyncStorage.setItem('rc_selected_area', JSON.stringify({ areaId: area.area_id, area: area.area_name }));
-        } catch (e) { /* ignore */ }
-
-        router.push({
-            pathname: '/(tabs)',
-            params: { 
-                area: area.area_name,
-                areaId: area.area_id.toString()
-            },
-        });
-    };
-
     const session = sessions.find((x) => x.id === sessionId) ?? null;
+
+    const handleAreaSelection = async (area: Area) => {
+        if (!session) return;
+        try {
+            await saveSelection({
+                areaId: Number(area.area_id),
+                area: area.area_name,
+                sessionId: session.id,
+                mealTime: session.meal_time,
+                date: session.date,
+            });
+        } catch (e) { /* ignore */ }
+        router.push('/(tabs)');
+    };
 
     // Take a free area in this session (the server refuses one another driver already holds)
     const claimArea = async (area: Area) => {
@@ -111,15 +110,7 @@ export default function AreaSelectionScreen() {
                     <TouchableOpacity style={styles.logoutButton} onPress={async () => {
                         try {
                             // Clear stored selections and per-area summaries
-                            const keys = await AsyncStorage.getAllKeys();
-                            const toRemove = keys.filter(k => 
-                                k.startsWith('rc_delivery_paid_summary_area_') ||
-                                k.startsWith('rc_delivery_unpaid_collected_area_') ||
-                                k === 'rc_selected_area'
-                            );
-                            if (toRemove.length) {
-                                await AsyncStorage.multiRemove(toRemove);
-                            }
+                            await clearDeliveryStorage();
                             await authService.logout();
                         } catch (e) {
                             // ignore

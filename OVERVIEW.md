@@ -2,21 +2,30 @@
 
 RC is a food-delivery platform: a customer app, this delivery-driver app, an admin console, and a backend of microservices. This file is a brief orientation for anyone (including a future Claude Code session) opening this repo on its own, without the rest of the project's context. Full detail lives in the RC root: `../GO-LIVE-PLAYBOOK.md` and `../AWS-INFRASTRUCTURE-PLAYBOOK.md`.
 
+> **In-flight work:** the driver delivery flow (marking orders delivered, server-side counts, unpaid list). Start at `docs/superpowers/START-HERE.md`.
+
 ## What this repo is
 
 An Expo/React Native app (file-based routing via `expo-router`) — the app delivery drivers use to see assigned orders and mark payment collected. **`main` is the branch to use here** — it's already ahead of `origin/dev`, which is missing most of the real service-integration code found on `main`.
 
 ## Current status
 
-Built against real backend APIs already:
+Built against real backend APIs:
 - Login — real JWT auth against user-service, `delivery_person` role enforced
-- Area selection — real fetch from locations-service, cached
-- Home tab — today's orders for the driver's assigned area, from delivery-service
-- Pending Payments tab — paid/unpaid toggle with optimistic UI + backend sync
+- Area selection — today's sessions for the driver; selection stores area and meal session
+- Session-scoped orders — Home loads every order for the selected area and session from delivery-service
+- Start delivery — after ordering closes for that session; moves orders to out-for-delivery on the server
+- Delivered / Failed — failed requires a reason; status updates go to the backend
+- Paid / Unpaid — mark payment collected or unpaid from order cards and confirmation flows
+- Server counters — Home summary counts (to deliver, delivered, collected, etc.) come from the backend after refresh or each write
+- Pending Payments — unpaid orders grouped by session date ("Today" first)
+- Search — by order ID, customer name, phone, address, and food item names (`services/delivery/orderView.ts`); Home and Pending Payments both use the same matcher
+- Session restore — `app/index.tsx` routes authenticated drivers to area selection without logging in again; JWT and selected area persist across restarts
+- Tests — Jest unit and screen tests via `npm test`
 
-**Not built, despite the integration doc's title**: no live GPS/location tracking anywhere in the codebase (no `expo-location`, no geolocation, no map). "Location Service Integration" here means a static named-area picker, not real-time driver tracking. There's also no accept/reject flow and no delivery-status progression beyond the paid/unpaid toggle — that's the entire scope of what this app does with an order today.
+No live GPS/location tracking anywhere in the codebase (no `expo-location`, no geolocation, no map). "Location Service Integration" here means a static named-area picker, not real-time driver tracking.
 
-**Known bug**: same as Frontend-Customer — `app/_layout.tsx`'s `isLoggedIn` gate is dead code, never set to `true`; the actual navigation happens via ad hoc `router.push` calls from the login screen instead.
+Driver delivery flow (spec and task notes): `docs/superpowers/START-HERE.md`.
 
 ## Backend it talks to
 

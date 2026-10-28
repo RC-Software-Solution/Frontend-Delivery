@@ -83,21 +83,31 @@ export interface DeliveryLocation {
   timestamp: Date;
 }
 
+export type OrderStatus = 'pending' | 'preparing' | 'delivering' | 'delivered' | 'completed' | 'cancelled' | 'delivery_failed';
+export type PaymentStatus = 'pending' | 'paid' | 'unpaid' | 'ignored';
+export type MealTime = 'breakfast' | 'lunch' | 'dinner';
+
 export interface DeliveryOrder {
-  id: string;
   order_id: string;
   customer_id: string;
   customer_name: string;
-  customer_phone?: string;
+  customer_phone: string;
   customer_address: string;
   area_id: number;
-  meal_time: 'breakfast' | 'lunch' | 'dinner';
+  meal_time: MealTime;
+  target_date: string | null;
   total_price: number;
-  payment_status: 'pending' | 'paid' | 'unpaid';
-  status: 'pending' | 'confirmed' | 'preparing' | 'ready' | 'delivered' | 'cancelled';
+  payment_status: PaymentStatus;
+  status: OrderStatus;
+  failure_reason: string | null;
   created_at: string;
-  updated_at: string;
   items: OrderItem[];
+}
+
+/** One area in one meal session */
+export interface SessionScope {
+  area_id: number;
+  meal_time: MealTime;
 }
 
 export interface OrderItem {
@@ -112,16 +122,30 @@ export interface OrderItem {
 }
 
 export interface GetAreaOrdersRequest {
-  area_id?: number;
-  meal_time?: 'breakfast' | 'lunch' | 'dinner';
-  date?: string; // Format: YYYY-MM-DD
-  payment_status?: 'pending' | 'paid' | 'unpaid';
-  timestamp?: string; // ISO timestamp for meal session determination
+  area_id: number;
+  meal_time?: MealTime;
+  target_date?: string; // YYYY-MM-DD
+  payment_status?: 'pending' | 'paid' | 'unpaid' | 'any';
+  type?: 'current' | 'all';
+}
+
+export interface DriverSummary {
+  to_deliver: { orders: number; parcels: number };
+  delivered: { orders: number; parcels: number };
+  failed: { orders: number };
+  collected: { orders: number; amount: number };
+  unpaid: { orders: number; amount: number; list: { order_id: string; total_price: number }[] };
+}
+
+export interface StartDeliveryResponse {
+  message: string;
+  moved: number;
+  order_ids: string[];
 }
 
 export interface UpdatePaymentStatusRequest {
   order_id: string;
-  payment_status: 'pending' | 'paid' | 'unpaid';
+  payment_status: 'paid' | 'unpaid';
 }
 
 export interface LocationUpdateRequest {

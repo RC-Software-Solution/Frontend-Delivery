@@ -4,6 +4,7 @@ import { View, Text, Modal, StyleSheet, TouchableOpacity } from 'react-native';
 interface ModalProps {
   visible: boolean;
   onClose: () => void;
+  onRequestClose?: () => void;
   onConfirm: () => void;
   title?: string;
   message?: string;
@@ -15,6 +16,7 @@ interface ModalProps {
 const CancelModal: React.FC<ModalProps> = ({
   visible,
   onClose,
+  onRequestClose,
   onConfirm,
   title = "Cancel Order",
   message = "Are you sure you want to cancel this order?",
@@ -23,7 +25,7 @@ const CancelModal: React.FC<ModalProps> = ({
   hideButtons = false, // <-- default to false
 }) => {
   return (
-    <Modal animationType="fade" transparent={true} visible={visible} onRequestClose={onClose}>
+    <Modal animationType="fade" transparent={true} visible={visible} onRequestClose={onRequestClose ?? onClose}>
       <View style={styles.modalContainer}>
         <View style={styles.modalContent}>
           <Text style={styles.modalTitle}>{title}</Text>
@@ -31,11 +33,11 @@ const CancelModal: React.FC<ModalProps> = ({
 
          {!hideButtons && (
   <View style={styles.buttonContainer}>
-    <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={onClose}>
+    <TouchableOpacity accessibilityRole="button" style={[styles.button, styles.cancelButton]} onPress={onClose}>
       <Text style={styles.buttonText}>{cancelText}</Text>
     </TouchableOpacity>
 
-    <TouchableOpacity style={[styles.button, styles.confirmButton]} onPress={onConfirm}>
+    <TouchableOpacity accessibilityRole="button" style={[styles.button, styles.confirmButton]} onPress={onConfirm}>
       <Text style={styles.buttonText}>{confirmText}</Text>
     </TouchableOpacity>
   </View>
