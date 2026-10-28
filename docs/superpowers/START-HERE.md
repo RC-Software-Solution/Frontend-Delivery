@@ -2,7 +2,7 @@
 
 Entry point for any new session or agent working on the RC delivery-person requirements. Read this file fully before touching code.
 
-Last updated: 2026-10-27 · Status: **planned, not started** (no code changed yet)
+Last updated: 2026-10-28 · Status: **implemented**. App branch `feat/driver-delivery-flow` is pushed. Backend `main` has the same work locally (fast-forward to `9227696`) and is not pushed. Do not re-run Tasks B0–B5 or app Tasks 0–8.
 
 ## 1. What this work is
 
@@ -143,3 +143,5 @@ test results against the baselines, and every "Ruling:" line from the ledgers wi
 Append one line per session: date, what finished, where it stopped.
 
 - 2026-10-27: audit done; spec and both plans written; owner decisions recorded. Nothing executed.
+- 2026-10-27: Backend B0–B5 and app Tasks 0–8 implemented and reviewed. Backend `ba5b742..9227696`. App `85fd2df..c194316`.
+- 2026-10-28: device checklist passed on the Samsung in Expo Go, including a cleared-data login. Customer pushes were not received: Expo Go does not load FCM, and no test customer has a token. Backend `main` fast-forwarded locally; not pushed. App branch pushed.
