@@ -1,0 +1,984 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Driver app mockups</title>
+<style>
+/* Tokens from spec §6.9. Sizes are binding. */
+:root {
+  --ink: #0A0A0F;
+  --muted: #4A4A4A;
+  --subtle: #5A5A5A;
+  --brand: #69bf70;
+  --on-brand: #0A0A0F;
+  --brand-strong: #1B5E20;
+  --brand-soft: #EEF7EF;
+  --danger: #A12622;
+  --attention: #E0A100;
+  --attention-soft: #FFF3D6;
+  --wait-ink: #6B4500;
+  --way: #4A2390;
+  --way-soft: #EFE7FB;
+  --ok-ink: #14501A;
+  --ok-soft: #E4F4E6;
+  --fail-ink: #8E1F1B;
+  --fail-soft: #FDE8E7;
+  --cancel-ink: #3D3D3D;
+  --cancel-soft: #EEEEEE;
+  --bg: #F3F5F0;
+  --surface: #FFFFFF;
+  --field: #ECEFEA;
+  --border: #8A968C;
+  --font: system-ui, "Noto Sans Sinhala", "Iskoola Pota", "Nirmala UI", sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body.bare #picker, body.bare .notes, body.bare .pagehelp { display: none; }
+body {
+  background: #e4e8df;
+  color: var(--ink);
+  font: 400 18px/1.35 var(--font);
+  font-variant-numeric: tabular-nums;
+}
+button, input, textarea { font: inherit; color: inherit; }
+h1, h2, p { margin: 0; }
+
+/* Review chrome. Not part of any phone frame. */
+#picker {
+  display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+  padding: 10px 14px; background: var(--ink); color: #d5d5d8;
+  position: sticky; top: 0; z-index: 5; font-size: 14px;
+}
+#picker b { color: #fff; margin-right: 6px; }
+#picker a { color: #d5d5d8; text-decoration: none; padding: 4px 8px; border-radius: 8px; }
+#picker a.on, #picker a:focus-visible { background: var(--brand); color: var(--on-brand); }
+.notes { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 14px; max-width: 1100px; }
+.note {
+  background: #fff6cc; border: 1px solid #c9a400; border-radius: 8px;
+  padding: 8px 10px; width: 250px; font-size: 14px; line-height: 1.35;
+}
+.note b { display: block; margin-bottom: 2px; }
+.pagehelp { padding: 4px 14px 0; font-size: 14px; color: var(--muted); }
+
+.board { display: none; width: 390px; margin: 16px auto 48px; flex-direction: column; gap: 12px; }
+.board:target { display: flex; }
+body:not(:has(.board:target)) #SignIn { display: flex; }
+.cap { font-size: 14px; color: var(--muted); padding: 0 2px; }
+
+.phone {
+  width: 390px; min-height: 844px; background: var(--bg); color: var(--ink);
+  border: 1px solid var(--border); border-radius: 28px; overflow: hidden;
+  display: flex; flex-direction: column; position: relative;
+}
+.phone.short { min-height: 0; }
+.status {
+  height: 28px; display: flex; align-items: center; justify-content: space-between;
+  padding: 0 18px; font-size: 14px; font-weight: 600; background: var(--bg);
+}
+.bar {
+  display: flex; align-items: center; gap: 8px; min-height: 56px; padding: 4px 12px;
+}
+.bar h1 { font-size: 28px; line-height: 1.15; font-weight: 700; }
+.bar .sub { font-size: 16px; color: var(--muted); }
+.grow { flex: 1; }
+.iconbtn {
+  width: 56px; height: 56px; border-radius: 999px; border: 1px solid var(--border);
+  background: var(--surface); display: grid; place-items: center; flex: none; padding: 0;
+}
+svg.i { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.scroll { flex: 1; display: flex; flex-direction: column; gap: 8px; padding: 0 12px 12px; }
+.tabs {
+  display: flex; gap: 4px; padding: 8px 8px 12px; background: var(--surface);
+  border-top: 1px solid var(--border);
+}
+.tabs a {
+  flex: 1; min-height: 56px; border-radius: 16px; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 2px; text-decoration: none;
+  color: var(--muted); font-size: 14px; font-weight: 600;
+}
+.tabs a.on { background: var(--brand-soft); color: var(--brand-strong); }
+
+.seg { display: flex; flex-wrap: wrap; gap: 8px; }
+.seg span { flex: 1; text-align: center; }
+.seg span, .chip, .filter {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 56px; padding: 8px 14px; border-radius: 999px; font-size: 16px; font-weight: 600;
+  border: 1px solid var(--border); background: var(--surface);
+}
+.seg span.on, .filter.on { background: var(--brand); color: var(--on-brand); border-color: var(--brand); }
+.chip { min-height: 0; padding: 4px 10px; font-size: 14px; border: 0; }
+.chip.wait { background: var(--attention-soft); color: var(--wait-ink); }
+.chip.way { background: var(--way-soft); color: var(--way); }
+.chip.ok { background: var(--ok-soft); color: var(--ok-ink); }
+.chip.bad { background: var(--fail-soft); color: var(--fail-ink); }
+.chip.off { background: var(--cancel-soft); color: var(--cancel-ink); }
+.ref {
+  display: inline-flex; align-items: center; min-height: 28px; padding: 2px 8px;
+  border-radius: 8px; background: var(--field); font-size: 16px; font-weight: 700;
+}
+
+.area {
+  background: var(--surface); border-radius: 20px; padding: 12px 14px;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.area h2 { font-size: 22px; line-height: 1.2; }
+.glance { font-size: 40px; line-height: 1; font-weight: 700; letter-spacing: -0.03em; }
+.done { font-size: 16px; color: var(--muted); }
+.alldone { display: flex; align-items: center; gap: 8px; color: var(--brand-strong); font-size: 22px; font-weight: 700; }
+.session { font-size: 16px; color: var(--muted); padding: 0 4px; }
+.banner {
+  display: flex; gap: 10px; align-items: flex-start; background: var(--attention-soft);
+  color: var(--wait-ink); border-radius: 12px; padding: 12px; font-size: 16px; font-weight: 600;
+}
+.banner i { width: 4px; align-self: stretch; background: var(--attention); border-radius: 4px; flex: none; }
+.err {
+  background: var(--fail-soft); color: var(--fail-ink); border-radius: 12px; padding: 12px; font-size: 16px; font-weight: 600;
+}
+
+.btn {
+  min-height: 56px; padding: 10px 16px; border-radius: 999px; border: 1px solid var(--border);
+  background: var(--surface); font-size: 18px; font-weight: 700; display: inline-flex;
+  align-items: center; justify-content: center; gap: 8px; text-align: center;
+}
+.btn.primary { min-height: 64px; background: var(--brand); color: var(--on-brand); border-color: var(--brand); }
+.btn.danger { min-height: 64px; background: var(--danger); color: #fff; border-color: var(--danger); }
+.btn.off { background: var(--field); color: var(--muted); }
+.btn.block { width: 100%; }
+.row { display: flex; gap: 16px; }
+.row > * { flex: 1; }
+
+.counts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.count {
+  background: var(--surface); border-radius: 12px; padding: 10px 12px;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.count b { font-size: 22px; line-height: 1.1; }
+.count span { font-size: 14px; color: var(--muted); }
+
+.search {
+  height: 56px; border-radius: 12px; border: 1px solid var(--border); background: var(--field);
+  padding: 0 14px; width: 100%; color: var(--subtle); font-size: 16px; display: flex; align-items: center;
+}
+.filters { display: flex; flex-wrap: wrap; gap: 8px; }
+.filter { min-height: 56px; padding: 6px 12px; font-size: 16px; }
+.group { font-size: 16px; font-weight: 700; padding: 4px 4px 0; }
+
+.card {
+  background: var(--surface); border-radius: 20px; padding: 12px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.card .top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.card h2 { font-size: 22px; line-height: 1.15; }
+.meta { font-size: 16px; color: var(--muted); }
+.amount { font-size: 22px; font-weight: 700; }
+.tags { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+.phone-end { font-size: 16px; font-weight: 700; }
+
+.sheet-wrap { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: flex-end; }
+.scrim { position: absolute; inset: 0; background: rgba(10, 10, 15, 0.45); }
+.sheet {
+  position: relative; background: var(--surface); border-radius: 20px 20px 0 0;
+  padding: 12px 16px 20px; display: flex; flex-direction: column; gap: 12px;
+}
+.handle { width: 48px; height: 4px; border-radius: 4px; background: var(--border); margin: 0 auto; }
+.sheet h2 { font-size: 22px; }
+.field {
+  min-height: 56px; border-radius: 12px; border: 1px solid var(--border); background: var(--field);
+  padding: 8px 12px; font-size: 18px; color: var(--ink);
+}
+.field.ph { color: var(--subtle); }
+.presets { display: flex; flex-wrap: wrap; gap: 8px; }
+.presets span {
+  min-height: 48px; padding: 8px 12px; border-radius: 999px; border: 1px solid var(--border);
+  background: var(--surface); font-size: 16px; font-weight: 600; display: inline-flex; align-items: center;
+}
+.presets span.on { background: var(--fail-soft); color: var(--fail-ink); border-color: var(--fail-ink); }
+
+.undo {
+  margin-top: auto; background: var(--surface); border-top: 4px solid var(--brand);
+  padding: 12px; display: flex; flex-direction: column; gap: 8px;
+}
+.undo .track { height: 6px; border-radius: 6px; background: var(--field); }
+.undo .track i { display: block; height: 100%; width: 40%; background: var(--brand); border-radius: 6px; }
+
+.skel { height: 92px; border-radius: 20px; background: var(--field); }
+.empty { margin: auto; text-align: left; display: flex; flex-direction: column; gap: 12px; padding: 24px 8px; }
+.empty h2 { font-size: 22px; }
+.foot {
+  margin-top: auto; background: var(--surface); border-radius: 12px; padding: 12px;
+  font-size: 18px; font-weight: 700;
+}
+.choice {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px;
+  display: flex; gap: 10px; align-items: flex-start;
+}
+.choice.on { border-color: var(--brand-strong); background: var(--brand-soft); }
+.dot {
+  width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--border); flex: none; margin-top: 2px;
+}
+.choice.on .dot { border-color: var(--brand-strong); background: var(--brand); box-shadow: inset 0 0 0 4px var(--brand-soft); }
+.choice b { display: block; font-size: 18px; }
+.choice span { font-size: 16px; color: var(--muted); }
+.label { font-size: 16px; font-weight: 700; }
+</style>
+</head>
+<body>
+<nav id="picker" aria-label="Boards">
+  <b>Driver mockups</b>
+  <a href="#SignIn">Sign in</a>
+  <a href="#Areas-1area">1 area</a>
+  <a href="#Areas-3areas">3 areas</a>
+  <a href="#Areas-states">Area states</a>
+  <a href="#Stops-hostel">Hostel stops</a>
+  <a href="#Stops-house">House stops</a>
+  <a href="#Card-states">Card states</a>
+  <a href="#Handover-twostep">Two steps</a>
+  <a href="#Handover-onetap">One tap</a>
+  <a href="#Failed">Failed</a>
+  <a href="#More">More</a>
+  <a href="#Unpaid">Unpaid</a>
+  <a href="#Settings">Settings</a>
+  <a href="#ManageAreas">Manage areas</a>
+  <a href="#TabBar">Tab bar</a>
+  <a href="#Sinhala">Sinhala</a>
+</nav>
+<p class="pagehelp">Each phone is 390 px wide. Yellow notes are decisions still open. They are not part of the app.</p>
+<div class="notes">
+  <div class="note"><b>P1 Font</b>Default: the phone’s own font, for English and Sinhala. Alternative: Nunito for English plus Noto Sans Sinhala.</div>
+  <div class="note"><b>P2 Short reference</b>Default: last 4 letters or digits of the order id, as #6O7L. Alternative: a number from the server.</div>
+  <div class="note"><b>P3 Screen awake</b>Default: Areas and Stops stay awake while open. Alternative: never.</div>
+  <div class="note"><b>P4 Undo</b>Default: 5 seconds, for the one-tap handover. Alternative: 3 or 8 seconds.</div>
+  <div class="note"><b>P5 Failure reasons</b>Default: four presets, sent to the server in English, plus a text box. Alternative: text box only.</div>
+  <div class="note"><b>P6 Sign in</b>Default: no success message, no “Remember me”, language switch added. Alternative: leave sign-in as it is today.</div>
+  <div class="note"><b>P7 Log out</b>Default: blocked while updates are waiting on the phone. Alternative: allow log out and discard them.</div>
+</div>
+
+<!-- Sign in -->
+<article class="board" id="SignIn">
+  <p class="cap">No “Remember me”. No success message after sign-in. Spec §6.7 and §6.10 P6.</p>
+  <div class="phone">
+    <div class="status"><span>9:41</span><span>LTE</span></div>
+    <div class="scroll" style="padding-top:24px">
+      <h1 style="font-size:28px">Sign in</h1>
+      <div class="seg" style="margin-top:8px">
+        <span class="on">EN</span>
+        <span>සිං</span>
+      </div>
+      <div class="err" style="margin-top:8px">Invalid email or password. Please try again</div>
+      <div>
+        <div class="label">Email</div>
+        <div class="field" style="margin-top:6px">driver@example.com</div>
+      </div>
+      <div>
+        <div class="label">Password</div>
+        <div class="field" style="margin-top:6px;display:flex;justify-content:space-between;align-items:center">
+          <span>••••••••</span><span style="font-size:16px;font-weight:700">Show</span>
+        </div>
+      </div>
+      <div class="btn primary block">Sign in</div>
+    </div>
+  </div>
+</article>
+
+<!-- One area -->
+<article class="board" id="Areas-1area">
+  <p class="cap">Mounted glance. One area, so the meal switcher is hidden. Spec §6.2.</p>
+  <div class="phone">
+    <div class="status"><span>9:41</span><span>LTE</span></div>
+    <div class="bar"><h1>My areas</h1></div>
+    <div class="scroll">
+      <p class="session">Delivery time</p>
+      <div class="area">
+        <h2>Kelaniya</h2>
+        <p class="glance">8 orders · 12 parcels to deliver</p>
+        <p class="done">5 delivered · Rs 2,250 collected</p>
+      </div>
+    </div>
+    <nav class="tabs">
+      <a class="on" href="#Areas-1area"><svg class="i" viewBox="0 0 24 24"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1z"/></svg>Areas</a>
+      <a href="#Unpaid"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/></svg>Unpaid</a>
+      <a href="#Settings"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M18.4 5.6 17 7M7 17l-1.4 1.4"/></svg>Settings</a>
+    </nav>
+  </div>
+</article>
+
+<!-- Three areas -->
+<article class="board" id="Areas-3areas">
+  <p class="cap">Meal switcher, one area finished, updates waiting, Manage areas. Spec §6.2 and §6.6.</p>
+  <div class="phone">
+    <div class="status"><span>9:41</span><span>LTE</span></div>
+    <div class="bar"><h1>My areas</h1></div>
+    <div class="scroll">
+      <div class="seg">
+        <span>Breakfast</span><span class="on">Lunch</span><span>Dinner</span>
+      </div>
+      <p class="session">Delivery time</p>
+      <div class="banner"><i></i><span>3 updates waiting to send</span></div>
+      <div class="area">
+        <h2>Kelaniya</h2>
+        <p class="glance">8 orders · 12 parcels to deliver</p>
+        <p class="done">5 delivered · Rs 2,250 collected</p>
+      </div>
+      <div class="area">
+        <h2>Kiribathgoda</h2>
+        <p class="glance">3 orders · 3 parcels to deliver</p>
+        <p class="done">0 delivered · Rs 0 collected</p>
+      </div>
+      <div class="area">
+        <h2>Kaduwela</h2>
+        <p class="alldone"><svg class="i" viewBox="0 0 24 24"><path d="M5 12.5 10 17.5 19 7"/></svg>All delivered</p>
+        <p class="done">6 delivered · Rs 1,800 collected</p>
+      </div>
+      <div class="btn block">Manage areas</div>
+    </div>
+    <nav class="tabs">
+      <a class="on" href="#Areas-3areas"><svg class="i" viewBox="0 0 24 24"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1z"/></svg>Areas</a>
+      <a href="#Unpaid"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/></svg>Unpaid</a>
+      <a href="#Settings"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M18.4 5.6 17 7M7 17l-1.4 1.4"/></svg>Settings</a>
+    </nav>
+  </div>
+</article>
+
+<!-- Area states -->
+<article class="board" id="Areas-states">
+  <p class="cap">Loading, not assigned, no areas in this meal, offline. Spec §6.2.</p>
+  <div class="phone short">
+    <div class="status"><span>9:41</span><span>LTE</span></div>
+    <div class="bar"><h1>My areas</h1></div>
+    <div class="scroll">
+      <div class="skel"></div>
+      <div class="skel"></div>
+      <p class="session">Loading</p>
+    </div>
+    <nav class="tabs">
+      <a class="on" href="#Areas-states"><svg class="i" viewBox="0 0 24 24"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1z"/></svg>Areas</a>
+      <a href="#Unpaid"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/></svg>Unpaid</a>
+      <a href="#Settings"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2"/></svg>Settings</a>
+    </nav>
+  </div>
+  <div class="phone short">
+    <div class="status"><span>9:41</span><span>LTE</span></div>
+    <div class="bar"><h1>My areas</h1></div>
+    <div class="scroll">
+      <div class="empty">
+        <h2>You are not assigned to a meal session today. Please contact an administrator.</h2>
+        <div class="btn primary">Refresh</div>
+      </div>
+    </div>
+  </div>
+  <div class="phone short">
+    <div class="status"><span>9:41</span><span>LTE</span></div>
+    <div class="bar"><h1>My areas</h1></div>
+    <div class="scroll">
+      <div class="seg"><span>Breakfast</span><span class="on">Lunch</span><span>Dinner</span></div>
+      <p class="session">Ordering open</p>
+      <div class="empty">
+        <h2>You have no areas in this meal.</h2>
+        <div class="btn primary">Manage areas</div>
+      </div>
+    </div>
+  </div>
+  <div class="phone short">
+    <div class="status"><span>9:41</span><span>No signal</span></div>
+    <div class="bar"><h1>My areas</h1></div>
+    <div class="scroll">
+      <div class="empty">
+        <h2>Couldn't load your areas</h2>
+        <p class="meta">Check your connection and try again.</p>
+        <div class="btn primary">Try again</div>
+      </div>
+    </div>
+  </div>
+</article>
+
+<!-- Hostel stops -->
+<article class="board" id="Stops-hostel">
+  <p class="cap">Start delivery is disabled until ordering closes. Two Kasuns are told apart by the phone ending. Spec §6.3.</p>
+  <div class="phone">
+    <div class="status"><span>9:41</span><span>LTE</span></div>
+    <div class="bar">
+      <div class="iconbtn" aria-hidden="true"><svg class="i" viewBox="0 0 24 24"><path d="M15 5 8 12l7 7"/></svg></div>
+      <div><h1 style="font-size:22px">Hostel A</h1><div class="sub">Lunch</div></div>
+    </div>
+    <div class="scroll">
+      <div class="counts">
+        <div class="count"><b>4 orders</b><span>6 parcels · To deliver</span></div>
+        <div class="count"><b>2</b><span>Delivered</span></div>
+        <div class="count"><b>Rs 900</b><span>Collected</span></div>
+        <div class="count"><b>1</b><span>Unpaid</span></div>
+      </div>
+      <div class="btn block off">Start delivery</div>
+      <p class="session">Available after ordering closes</p>
+      <div class="search">Search name, #ref or phone</div>
+      <div class="filters">
+        <span class="filter on">To deliver</span>
+        <span class="filter">Delivered</span>
+        <span class="filter">Failed</span>
+        <span class="filter">All</span>
+      </div>
+      <p class="group">Hostel A · 4 orders</p>
+      <div class="card">
+        <div class="top">
+          <h2>Kasun Perera</h2>
+          <div class="tags"><span class="ref">#6O7L</span><span class="chip way">On the way</span></div>
+        </div>
+        <p class="phone-end">Phone …4567</p>
+        <p class="meta">Rice × 2 · 2 parcels</p>
+        <p class="amount">Rs 450</p>
+        <div class="btn block">Call Kasun Perera</div>
+        <div class="row">
+          <div class="btn">Failed</div>
+          <div class="btn primary">Delivered</div>
+        </div>
+        <div class="btn block">More</div>
+      </div>
+      <div class="card">
+        <div class="top">
+          <h2>Kasun Perera</h2>
+          <div class="tags"><span class="ref">#A12B</span><span class="chip way">On the way</span></div>
+        </div>
+        <p class="phone-end">Phone …8901</p>
+        <p class="meta">Kottu × 1 · 1 parcel</p>
+        <p class="amount">Rs 350</p>
+        <div class="btn block">Call Kasun Perera</div>
+        <div class="row">
+          <div class="btn">Failed</div>
+          <div class="btn primary">Delivered</div>
+        </div>
+        <div class="btn block">More</div>
+      </div>
+      <div class="card">
+        <div class="top">
+          <h2>Nimali Silva</h2>
+          <div class="tags"><span class="ref">#C90D</span><span class="chip wait">Waiting</span></div>
+        </div>
+        <p class="meta">Hoppers × 3 · 3 parcels</p>
+        <p class="amount">Rs 600</p>
+        <div class="btn block">Call Nimali Silva</div>
+      </div>
+      <div class="card">
+        <div class="top">
+          <h2>Amal Fernando</h2>
+          <div class="tags"><span class="ref">#1F3E</span><span class="chip wait">Waiting</span></div>
+        </div>
+        <p class="meta">String hoppers × 2 · 2 parcels</p>
+        <p class="amount">Rs 500</p>
+        <div class="btn block">Call Amal Fernando</div>
+      </div>
+    </div>
+  </div>
+</article>
+
+<!-- House stops -->
+<article class="board" id="Stops-house">
+  <p class="cap">A house is one stop. Call is a full-width 56 dp target. Spec §6.3.</p>
+  <div class="phone">
+    <div class="status"><span>9:41</span><span>LTE</span></div>
+    <div class="bar">
+      <div class="iconbtn"><svg class="i" viewBox="0 0 24 24"><path d="M15 5 8 12l7 7"/></svg></div>
+      <div><h1 style="font-size:22px">Kelaniya</h1><div class="sub">Lunch</div></div>
+    </div>
+    <div class="scroll">
+      <div class="search">Search name, #ref or phone</div>
+      <div class="filters">
+        <span class="filter on">To deliver</span>
+        <span class="filter">Delivered</span>
+        <span class="filter">Failed</span>
+        <span class="filter">All</span>
+      </div>
+      <p class="group">42 Temple Road · 1 order</p>
+      <div class="card">
+        <div class="top">
+          <h2>Nimali Silva</h2>
+          <div class="tags"><span class="ref">#C90D</span><span class="chip way">On the way</span></div>
+        </div>
+        <p class="meta">42 Temple Road, Kelaniya</p>
+        <p class="meta">Hoppers × 3 · 3 parcels</p>
+        <p class="amount">Rs 600</p>
+        <div class="btn block">Call Nimali Silva</div>
+        <div class="row">
+          <div class="btn">Failed</div>
+          <div class="btn primary">Delivered</div>
+        </div>
+        <div class="btn block">More</div>
+      </div>
+      <p class="group">18 Lake Road · 1 order</p>
+      <div class="card">
+        <div class="top">
+          <h2>Amal Fernando</h2>
+          <div class="tags"><span class="ref">#1F3E</span><span class="chip way">On the way</span></div>
+        </div>
+        <p class="meta">18 Lake Road, Kelaniya</p>
+        <p class="meta">Rice × 1 · 1 parcel</p>
+        <p class="amount">Rs 450</p>
+        <div class="btn block">Call Amal Fernando</div>
+        <div class="row">
+          <div class="btn">Failed</div>
+          <div class="btn primary">Delivered</div>
+        </div>
+        <div class="btn block">More</div>
+      </div>
+    </div>
+  </div>
+</article>
+
+<!-- Card states -->
+<article class="board" id="Card-states">
+  <p class="cap">Every stop-card state on one board. Spec §6.3, §6.5 and §6.6.</p>
+  <div class="phone">
+    <div class="status"><span>9:41</span><span>LTE</span></div>
+    <div class="bar"><h1 style="font-size:22px">Card states</h1></div>
+    <div class="scroll">
+      <div class="card">
+        <div class="top"><h2>Waiting</h2><div class="tags"><span class="ref">#C90D</span><span class="chip wait">Waiting</span></div></div>
+        <p class="meta">Nimali Silva · Hoppers × 3</p>
+        <p class="amount">Rs 600</p>
+      </div>
+      <div class="card">
+        <div class="top"><h2>Two steps</h2><div class="tags"><span class="ref">#6O7L</span><span class="chip way">On the way</span></div></div>
+        <p class="meta">Kasun Perera · Rice × 2</p>
+        <div class="row"><div class="btn">Failed</div><div class="btn primary">Delivered</div></div>
+      </div>
+      <div class="card">
+        <div class="top"><h2>One choice</h2><div class="tags"><span class="ref">#6O7L</span><span class="chip way">On the way</span></div></div>
+        <p class="meta">Kasun Perera · Rice × 2</p>
+        <div class="row">
+          <div class="btn">Delivered, not paid</div>
+          <div class="btn primary">Delivered, paid</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="top"><h2>Kasun Perera</h2><div class="tags"><span class="ref">#6O7L</span></div></div>
+        <div class="banner"><i></i><span>Waiting to send</span></div>
+      </div>
+      <div class="card">
+        <div class="top"><h2>Kasun Perera</h2><div class="tags"><span class="ref">#6O7L</span></div></div>
+        <div class="err">Not sent: Order is already delivered</div>
+        <div class="btn block">Dismiss</div>
+      </div>
+      <div class="card">
+        <div class="top"><h2>Kasun Perera</h2><div class="tags"><span class="ref">#6O7L</span><span class="chip ok">Delivered</span><span class="chip ok">Paid</span></div></div>
+        <p class="amount">Rs 450</p>
+      </div>
+      <div class="card">
+        <div class="top"><h2>Nimali Silva</h2><div class="tags"><span class="ref">#C90D</span><span class="chip ok">Delivered</span><span class="chip wait">Not paid</span></div></div>
+        <p class="amount">Rs 600</p>
+      </div>
+      <div class="card">
+        <div class="top"><h2>Amal Fernando</h2><div class="tags"><span class="ref">#1F3E</span><span class="chip bad">Failed</span></div></div>
+        <p class="meta">Reason: Wrong address</p>
+      </div>
+    </div>
+  </div>
+</article>
+
+<!-- Two-step handover -->
+<article class="board" id="Handover-twostep">
+  <p class="cap">Payment still pending: “Was it paid?” Back sends nothing. Spec §6.5.</p>
+  <div class="phone" style="min-height:844px">
+    <div class="status"><span>9:41</span><span>LTE</span></div>
+    <div class="bar">
+      <div class="iconbtn"><svg class="i" viewBox="0 0 24 24"><path d="M15 5 8 12l7 7"/></svg></div>
+      <div><h1 style="font-size:22px">Hostel A</h1><div class="sub">Lunch</div></div>
+    </div>
+    <div class="sheet-wrap">
+      <div class="scrim"></div>
+      <div class="sheet">
+        <div class="handle"></div>
+        <h2>Was it paid?</h2>
+        <p class="meta">Kasun Perera · #6O7L</p>
+        <p class="amount">Rs 450</p>
+        <div class="btn primary block">Paid</div>
+        <div class="btn block">Not paid</div>
+        <div class="btn block">Back</div>
+      </div>
+    </div>
+  </div>
+  <p class="cap">Already paid: confirm delivery only. Spec §6.5.</p>
+  <div class="phone" style="min-height:844px">
+    <div class="status"><span>9:41</span><span>LTE</span></div>
+    <div class="bar">
+      <div class="iconbtn"><svg class="i" viewBox="0 0 24 24"><path d="M15 5 8 12l7 7"/></svg></div>
+      <div><h1 style="font-size:22px">Hostel A</h1><div class="sub">Lunch</div></div>
+    </div>
+    <div class="sheet-wrap">
+      <div class="scrim"></div>
+      <div class="sheet">
+        <div class="handle"></div>
+        <h2>Mark delivered?</h2>
+        <p class="meta">Nimali Silva · #C90D · Paid</p>
+        <p class="amount">Rs 600</p>
+        <div class="btn primary block">Delivered</div>
+        <div class="btn block">Back</div>
+      </div>
+    </div>
+  </div>
+</article>
+
+<!-- One tap -->
+<article class="board" id="Handover-onetap">
+  <p class="cap">Not paid is on the left. Paid is on the right, under the thumb. Undo lasts 5 seconds. Spec §6.5 P4.</p>
+  <div class="phone">
+    <div class="status"><span>9:41</span><span>LTE</span></div>
+    <div class="bar">
+      <div class="iconbtn"><svg class="i" viewBox="0 0 24 24"><path d="M15 5 8 12l7 7"/></svg></div>
+      <div><h1 style="font-size:22px">Hostel A</h1><div class="sub">Lunch</div></div>
+    </div>
+    <div class="scroll">
+      <div class="card">
+        <div class="top">
+          <h2>Kasun Perera</h2>
+          <div class="tags"><span class="ref">#6O7L</span><span class="chip way">On the way</span></div>
+        </div>
+        <p class="phone-end">Phone …4567</p>
+        <p class="meta">Rice × 2 · 2 parcels</p>
+        <p class="amount">Rs 450</p>
+        <div class="btn block">Call Kasun Perera</div>
+        <div class="row">
+          <div class="btn">Delivered, not paid</div>
+          <div class="btn primary">Delivered, paid</div>
+        </div>
+        <div class="btn block">Failed</div>
+      </div>
+    </div>
+    <div class="undo">
+      <b>Delivered to Kasun · Paid</b>
+      <span class="meta">Sending in 5 s</span>
+      <div class="track"><i></i></div>
+      <div class="btn primary block">Undo</div>
+    </div>
+  </div>
+</article>
+
+<!-- Failed -->
+<article class="board" id="Failed">
+  <p class="cap">Mark failed stays off until there is a reason. Presets are sent in English. Spec §6.5 P5.</p>
+  <div class="phone" style="min-height:700px">
+    <div class="status"><span>9:41</span><span>LTE</span></div>
+    <div class="sheet-wrap">
+      <div class="scrim"></div>
+      <div class="sheet">
+        <div class="handle"></div>
+        <h2>Delivery failed</h2>
+        <p class="meta">Kasun Perera · #6O7L</p>
+        <div class="presets">
+          <span>Customer not there</span>
+          <span>Phone not answered</span>
+          <span>Wrong address</span>
+          <span>Refused the order</span>
+        </div>
+        <div class="field ph">What happened? (required)</div>
+        <div class="btn block off">Mark failed</div>
+        <div class="btn block">Back</div>
+      </div>
+    </div>
+  </div>
+  <p class="cap">A preset is enough. Typed text is sent as typed.</p>
+  <div class="phone" style="min-height:700px">
+    <div class="status"><span>9:41</span><span>LTE</span></div>
+    <div class="sheet-wrap">
+      <div class="scrim"></div>
+      <div class="sheet">
+        <div class="handle"></div>
+        <h2>Delivery failed</h2>
+        <p class="meta">Kasun Perera · #6O7L</p>
+        <div class="presets">
+          <span>Customer not there</span>
+          <span>Phone not answered</span>
+          <span class="on">Wrong address</span>
+          <span>Refused the order</span>
+        </div>
+        <div class="field ph">What happened? (required)</div>
+        <div class="btn danger block">Mark failed</div>
+        <div class="btn block">Back</div>
+      </div>
+    </div>
+  </div>
+</article>
+
+<!-- More -->
+<article class="board" id="More">
+  <p class="cap">Payment can be corrected after the handover. Delivered cannot. Spec §6.5.</p>
+  <div class="phone" style="min-height:844px">
+    <div class="status"><span>9:41</span><span>LTE</span></div>
+    <div class="sheet-wrap">
+      <div class="scrim"></div>
+      <div class="sheet">
+        <div class="handle"></div>
+        <h2>Order #6O7L</h2>
+        <p class="meta">Kasun Perera · Rs 450 · Not paid</p>
+        <div class="btn primary block">Mark paid</div>
+        <div class="btn block">Mark not paid</div>
+        <div class="btn block">Back</div>
+      </div>
+    </div>
+  </div>
+</article>
+
+<!-- Unpaid -->
+<article class="board" id="Unpaid">
+  <p class="cap">Every area the driver holds today. Mark paid asks first. Spec §6.4.</p>
+  <div class="phone">
+    <div class="status"><span>9:41</span><span>LTE</span></div>
+    <div class="bar"><h1>Unpaid orders</h1></div>
+    <div class="scroll">
+      <div class="search">Search name, #ref or phone</div>
+      <p class="group">Today · 2 orders · Rs 1,050</p>
+      <div class="card">
+        <div class="top">
+          <h2>Nimali Silva</h2>
+          <div class="tags"><span class="ref">#C90D</span><span class="chip wait">Not paid</span></div>
+        </div>
+        <p class="meta">Kelaniya · Lunch · Delivered</p>
+        <p class="amount">Rs 600</p>
+        <div class="btn primary block">Mark paid</div>
+      </div>
+      <div class="card">
+        <div class="top">
+          <h2>Amal Fernando</h2>
+          <div class="tags"><span class="ref">#1F3E</span><span class="chip wait">Not paid</span></div>
+        </div>
+        <p class="meta">Kiribathgoda · Lunch · On the way</p>
+        <p class="amount">Rs 450</p>
+        <div class="btn primary block">Mark paid</div>
+      </div>
+      <div class="foot">Outstanding: 2 orders · Rs 1,050</div>
+    </div>
+    <nav class="tabs">
+      <a href="#Areas-3areas"><svg class="i" viewBox="0 0 24 24"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1z"/></svg>Areas</a>
+      <a class="on" href="#Unpaid"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/></svg>Unpaid</a>
+      <a href="#Settings"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2"/></svg>Settings</a>
+    </nav>
+  </div>
+  <p class="cap">Confirm before the payment is saved on the phone. Spec §6.4.</p>
+  <div class="phone" style="min-height:520px">
+    <div class="status"><span>9:41</span><span>LTE</span></div>
+    <div class="sheet-wrap">
+      <div class="scrim"></div>
+      <div class="sheet">
+        <div class="handle"></div>
+        <h2>Mark paid?</h2>
+        <p class="meta">Nimali Silva · #C90D · Rs 600</p>
+        <div class="btn primary block">Mark paid</div>
+        <div class="btn block">Back</div>
+      </div>
+    </div>
+  </div>
+</article>
+
+<!-- Settings -->
+<article class="board" id="Settings">
+  <p class="cap">Language, handover style, and log out blocked while updates wait. Spec §6.7 and §6.10 P7.</p>
+  <div class="phone">
+    <div class="status"><span>9:41</span><span>LTE</span></div>
+    <div class="bar"><h1>Settings</h1></div>
+    <div class="scroll">
+      <p class="label">Language</p>
+      <div class="seg">
+        <span class="on">English</span>
+        <span>සිංහල</span>
+      </div>
+      <p class="label">Handing over an order</p>
+      <div class="choice on">
+        <i class="dot"></i>
+        <div><b>Two steps</b><span>Tap Delivered, then answer “Was it paid?”</span></div>
+      </div>
+      <div class="choice">
+        <i class="dot"></i>
+        <div><b>One tap, with Undo</b><span>Tap Delivered, paid or Delivered, not paid. Undo for 5 seconds.</span></div>
+      </div>
+      <p class="meta">Signed in as Nimal</p>
+      <div class="btn block off">Log out</div>
+      <div class="err">3 updates are not sent yet. Connect to the internet to send them before logging out.</div>
+    </div>
+    <nav class="tabs">
+      <a href="#Areas-3areas"><svg class="i" viewBox="0 0 24 24"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1z"/></svg>Areas</a>
+      <a href="#Unpaid"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/></svg>Unpaid</a>
+      <a class="on" href="#Settings"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4"/></svg>Settings</a>
+    </nav>
+  </div>
+</article>
+
+<!-- Manage areas -->
+<article class="board" id="ManageAreas">
+  <p class="cap">Take a free area. Release one of mine. Covered areas cannot be taken. Spec §6.1.</p>
+  <div class="phone">
+    <div class="status"><span>9:41</span><span>LTE</span></div>
+    <div class="bar">
+      <div class="iconbtn"><svg class="i" viewBox="0 0 24 24"><path d="M15 5 8 12l7 7"/></svg></div>
+      <h1 style="font-size:22px">Manage areas</h1>
+    </div>
+    <div class="scroll">
+      <div class="seg"><span>Breakfast</span><span class="on">Lunch</span><span>Dinner</span></div>
+      <p class="label">My areas</p>
+      <div class="card">
+        <div class="top"><h2>Kelaniya</h2></div>
+        <div class="btn block">Release</div>
+      </div>
+      <p class="label">Free areas</p>
+      <div class="card">
+        <div class="top"><h2>Malabe</h2></div>
+        <div class="btn primary block">Take</div>
+      </div>
+      <p class="label">Covered by other drivers</p>
+      <div class="card">
+        <div class="top"><h2>Kaduwela</h2></div>
+        <div class="btn block off">Take</div>
+      </div>
+    </div>
+  </div>
+</article>
+
+<!-- Tab bar -->
+<article class="board" id="TabBar">
+  <p class="cap">Labels stay visible. The active tab is a green pill. Spec §6.1.</p>
+  <div class="phone short" style="min-height:420px">
+    <div class="status"><span>9:41</span><span>LTE</span></div>
+    <div class="bar"><h1>My areas</h1></div>
+    <div class="scroll">
+      <p class="session">Delivery time</p>
+      <div class="area">
+        <h2>Kelaniya</h2>
+        <p class="glance">8 orders · 12 parcels to deliver</p>
+      </div>
+    </div>
+    <nav class="tabs">
+      <a class="on" href="#TabBar"><svg class="i" viewBox="0 0 24 24"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1z"/></svg>Areas</a>
+      <a href="#Unpaid"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/></svg>Unpaid</a>
+      <a href="#Settings"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4"/></svg>Settings</a>
+    </nav>
+  </div>
+</article>
+
+<!-- Sinhala -->
+<article class="board" id="Sinhala">
+  <p class="cap">Draft Sinhala. A native speaker chosen by the client reviews it before release.</p>
+  <div class="phone">
+    <div class="status"><span>9:41</span><span>LTE</span></div>
+    <div class="bar"><h1>මගේ ප්‍රදේශ</h1></div>
+    <div class="scroll">
+      <div class="seg">
+        <span>උදේ ආහාරය</span><span class="on">දිවා ආහාරය</span><span>රාත්‍රී ආහාරය</span>
+      </div>
+      <p class="session">බෙදාහැරීමේ වේලාව</p>
+      <div class="banner"><i></i><span>යැවීමට බලාපොරොත්තුවෙන් යාවත්කාලීන 3</span></div>
+      <div class="area">
+        <h2>Kelaniya</h2>
+        <p class="glance">බෙදාහැරීමට ඇණවුම් 8 · පාර්සල් 12</p>
+        <p class="done">බෙදාහැරූ 5 · එකතු කළ රු. 2,250</p>
+      </div>
+      <div class="area">
+        <h2>Kaduwela</h2>
+        <p class="alldone"><svg class="i" viewBox="0 0 24 24"><path d="M5 12.5 10 17.5 19 7"/></svg>සියල්ල බෙදාහැර ඇත</p>
+      </div>
+      <div class="btn block">ප්‍රදේශ කළමනාකරණය</div>
+    </div>
+    <nav class="tabs">
+      <a class="on" href="#Sinhala"><svg class="i" viewBox="0 0 24 24"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1z"/></svg>ප්‍රදේශ</a>
+      <a href="#Sinhala"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/></svg>නොගෙවූ</a>
+      <a href="#Sinhala"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2"/></svg>සැකසුම්</a>
+    </nav>
+  </div>
+  <div class="phone">
+    <div class="status"><span>9:41</span><span>LTE</span></div>
+    <div class="bar">
+      <div class="iconbtn"><svg class="i" viewBox="0 0 24 24"><path d="M15 5 8 12l7 7"/></svg></div>
+      <div><h1 style="font-size:22px">Hostel A</h1><div class="sub">දිවා ආහාරය</div></div>
+    </div>
+    <div class="scroll">
+      <div class="btn block off">බෙදාහැරීම අරඹන්න</div>
+      <p class="session">ඇණවුම් වැසූ පසු ලබාගත හැක</p>
+      <div class="search">නම, #අංකය හෝ දුරකථනය සොයන්න</div>
+      <div class="filters">
+        <span class="filter on">බෙදාහැරීමට</span>
+        <span class="filter">බෙදාහැරූ</span>
+        <span class="filter">අසාර්ථක</span>
+        <span class="filter">සියල්ල</span>
+      </div>
+      <p class="group">Hostel A · ඇණවුම් 4</p>
+      <div class="card">
+        <div class="top">
+          <h2>Kasun Perera</h2>
+          <div class="tags"><span class="ref">#6O7L</span><span class="chip way">මඟ දී</span></div>
+        </div>
+        <p class="phone-end">දුරකථනය …4567</p>
+        <p class="meta">Rice × 2 · පාර්සල් 2</p>
+        <p class="amount">රු. 450</p>
+        <div class="btn block">Kasun Perera අමතන්න</div>
+        <div class="row">
+          <div class="btn">අසාර්ථකයි</div>
+          <div class="btn primary">බෙදාහැරියා</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="top">
+          <h2>Kasun Perera</h2>
+          <div class="tags"><span class="ref">#A12B</span><span class="chip way">මඟ දී</span></div>
+        </div>
+        <p class="phone-end">දුරකථනය …8901</p>
+        <p class="meta">Kottu × 1 · පාර්සල් 1</p>
+        <p class="amount">රු. 350</p>
+        <div class="row">
+          <div class="btn">අසාර්ථකයි</div>
+          <div class="btn primary">බෙදාහැරියා</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="phone" style="min-height:844px">
+    <div class="status"><span>9:41</span><span>LTE</span></div>
+    <div class="sheet-wrap">
+      <div class="scrim"></div>
+      <div class="sheet">
+        <div class="handle"></div>
+        <h2>මුදල් ගෙව්වාද?</h2>
+        <p class="meta">Kasun Perera · #6O7L</p>
+        <p class="amount">රු. 450</p>
+        <div class="btn primary block">ගෙවා ඇත</div>
+        <div class="btn block">ගෙවා නැත</div>
+        <div class="btn block">ආපසු</div>
+      </div>
+    </div>
+  </div>
+  <div class="phone">
+    <div class="status"><span>9:41</span><span>LTE</span></div>
+    <div class="bar"><h1>සැකසුම්</h1></div>
+    <div class="scroll">
+      <p class="label">භාෂාව</p>
+      <div class="seg"><span>English</span><span class="on">සිංහල</span></div>
+      <p class="label">ඇණවුමක් භාර දීම</p>
+      <div class="choice on">
+        <i class="dot"></i>
+        <div><b>පියවර දෙකක්</b><span>“බෙදාහැරියා” ඔබා, පසුව “මුදල් ගෙව්වාද?” යන්නට පිළිතුරු දෙන්න</span></div>
+      </div>
+      <div class="choice">
+        <i class="dot"></i>
+        <div><b>එක් ස්පර්ශයක්, අහෝසි කිරීම සමඟ</b><span>“බෙදාහැරියා, ගෙව්වා” හෝ “බෙදාහැරියා, ගෙව්වේ නැත” ඔබන්න. තත්පර 5 ක් අහෝසි කළ හැක.</span></div>
+      </div>
+      <p class="meta">Nimal ලෙස පිවිස ඇත</p>
+      <div class="btn block off">ඉවත් වන්න</div>
+      <div class="err">යාවත්කාලීන 3 ක් තවම යවා නැත. ඉවත් වීමට පෙර ඒවා යැවීමට අන්තර්ජාලයට සම්බන්ධ වන්න.</div>
+    </div>
+    <nav class="tabs">
+      <a href="#Sinhala"><svg class="i" viewBox="0 0 24 24"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1z"/></svg>ප්‍රදේශ</a>
+      <a href="#Sinhala"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/></svg>නොගෙවූ</a>
+      <a class="on" href="#Sinhala"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2"/></svg>සැකසුම්</a>
+    </nav>
+  </div>
+</article>
+
+<script>
+if (location.search.indexOf('bare') !== -1) document.body.classList.add('bare');
+function mark() {
+  var id = (location.hash || '#SignIn').slice(1);
+  var links = document.querySelectorAll('#picker a');
+  for (var i = 0; i < links.length; i++) {
+    links[i].classList.toggle('on', links[i].getAttribute('href') === '#' + id);
+  }
+}
+addEventListener('hashchange', mark);
+mark();
+</script>
+</body>
+</html>
